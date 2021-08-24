@@ -13,7 +13,7 @@
 #include "DronePacket.h"
 #include "DroneData.h"
 
-#define DEBUG_LOGGING 0
+#define DEBUG_LOGGING 1
 
 class TelloDrone {
 public:

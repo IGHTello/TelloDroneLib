@@ -266,8 +266,9 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 	bool success = !packet.data.empty() && packet.data[0] == 0;
 	switch (packet.cmd_id) {
 		case CommandID::FLIGHT_DATA: {
+			auto current_time = std::chrono::system_clock::now();
 			auto time_since_last_update = std::chrono::duration_cast<std::chrono::milliseconds>(
-					std::chrono::system_clock::now() - m_last_update_time);
+					current_time - m_last_update_time);
 			if (time_since_last_update.count() > 3000) {
 				std::unique_lock<std::mutex> lock(m_connected_mutex);
 				m_connected = false;
@@ -280,6 +281,13 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 
 				m_connected_cv.notify_all();
 			}
+			m_last_update_time = current_time;
+			// TODO: READ FLIGHT DATA
+			break;
+		}
+		case CommandID::CONN_ACK: {
+			if constexpr (DEBUG_LOGGING)
+				std::cout << "Received connection acknowledgement!" << std::endl;
 			break;
 		}
 		case CommandID::SET_SSID:
@@ -300,8 +308,7 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 		case CommandID::FLIP_DRONE:
 		case CommandID::THROW_AND_FLY:
 		case CommandID::PALM_LAND:
-		case CommandID::SET_LOW_BATTERY_WARNING:
-		case CommandID::CONN_ACK: {
+		case CommandID::SET_LOW_BATTERY_WARNING: {
 			add_packet_ack();
 			break;
 		}
