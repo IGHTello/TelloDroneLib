@@ -24,6 +24,14 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	m_video_addr.sin_port = htons(TELLO_VIDEO_PORT);
 	m_video_addr.sin_addr.s_addr = INADDR_ANY;
 
+	struct timeval sock_timeout{};
+	sock_timeout.tv_sec = 1;
+	sock_timeout.tv_usec = 0;
+	if (setsockopt(m_video_socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &sock_timeout, sizeof(sock_timeout)) < 0) {
+		perror("setsockopt()");
+		exit(1);
+	}
+
 	m_cmd_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (m_cmd_socket_fd == -1) {
 		perror("socket() -> m_cmd_socket_fd");
@@ -33,9 +41,6 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	m_cmd_addr.sin_port = htons(TELLO_CMD_PORT);
 	m_cmd_addr.sin_addr.s_addr = inet_addr(TELLO_CMD_IP);
 
-	struct timeval sock_timeout{};
-	sock_timeout.tv_sec = 1;
-	sock_timeout.tv_usec = 0;
 	if (setsockopt(m_cmd_socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *) &sock_timeout, sizeof(sock_timeout)) < 0) {
 		perror("setsockopt()");
 		exit(1);
