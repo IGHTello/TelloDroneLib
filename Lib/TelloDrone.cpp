@@ -67,9 +67,6 @@ void TelloDrone::video_receive_thread_routine() {
 	while (!m_shutting_down) {
 		isize bytes_received = recvfrom(m_video_socket_fd, packet_buffer, sizeof(packet_buffer), 0, nullptr, nullptr);
 
-		if constexpr (DEBUG_LOGGING)
-			std::cout << "Received " << bytes_received << " video bytes" << std::endl;
-
 		if (bytes_received < 0) {
 			if (errno != EAGAIN)
 				std::cerr << "Failed to receive bytes from video socket, errno: " << strerror(errno) << std::endl;
@@ -83,7 +80,7 @@ void TelloDrone::video_receive_thread_routine() {
 			continue;
 		}
 
-		auto frame_num = packet_buffer[0];
+		int frame_num = packet_buffer[0];
 		auto segment_num = packet_buffer[1] & 127;
 		auto last_segment_in_frame = (packet_buffer[1] & 128) == 128;
 
@@ -124,6 +121,8 @@ void TelloDrone::video_receive_thread_routine() {
 
 		if (last_segment_in_frame) {
 			if (!discard_current_frame) {
+				if constexpr (DEBUG_LOGGING)
+					std::cout << "Finished receiving full frame" << std::endl;
 				if (full_frames_received == 8) {
 					queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)));
 					full_frames_received = 0;
