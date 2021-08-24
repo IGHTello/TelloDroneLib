@@ -20,9 +20,14 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("socket() -> m_video_socket_fd");
 		exit(1);
 	}
-	m_video_addr.sin_family = AF_INET;
-	m_video_addr.sin_port = htons(TELLO_VIDEO_PORT);
-	m_video_addr.sin_addr.s_addr = inet_addr(TELLO_CMD_IP);
+	sockaddr_in video_receive_addr {};
+	video_receive_addr.sin_family = AF_INET;
+	video_receive_addr.sin_addr.s_addr = INADDR_ANY;
+	video_receive_addr.sin_port = htons(TELLO_VIDEO_PORT);
+	if (bind(m_video_socket_fd, reinterpret_cast<sockaddr *>(&video_receive_addr), sizeof(sockaddr_in)) < 0) {
+		perror("bind(m_video_socket_fd)");
+		exit(1);
+	}
 
 	struct timeval sock_timeout{};
 	sock_timeout.tv_sec = 1;
@@ -58,11 +63,9 @@ void TelloDrone::video_receive_thread_routine() {
 	bool discard_current_frame = false;
 	u8 full_frames_received = 0;
 
-	socklen_t video_addr_size = sizeof(m_video_addr);
 	u8 packet_buffer[4096];
 	while (!m_shutting_down) {
-		isize bytes_received = recvfrom(m_video_socket_fd, packet_buffer, sizeof(packet_buffer), 0,
-										reinterpret_cast<sockaddr *>(&m_video_addr), &video_addr_size);
+		isize bytes_received = recvfrom(m_video_socket_fd, packet_buffer, sizeof(packet_buffer), 0, nullptr, nullptr);
 
 		if constexpr (DEBUG_LOGGING)
 			std::cout << "Received " << bytes_received << " video bytes" << std::endl;
