@@ -56,6 +56,7 @@ void TelloDrone::video_receive_thread_routine() {
 	usize current_frame_num = 0;
 	isize last_segment_num_received = -1;
 	bool discard_current_frame = false;
+	u8 full_frames_received = 0;
 
 	socklen_t video_addr_size = sizeof(m_video_addr);
 	u8 packet_buffer[4096];
@@ -65,6 +66,7 @@ void TelloDrone::video_receive_thread_routine() {
 		if (bytes_received < 0) {
 			if (errno != EAGAIN)
 				std::cerr << "Failed to receive bytes from video socket, errno: " << strerror(errno) << std::endl;
+			queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE))); // FIXME: ???
 			continue;
 		}
 
@@ -115,6 +117,11 @@ void TelloDrone::video_receive_thread_routine() {
 
 		if (last_segment_in_frame) {
 			if (!discard_current_frame) {
+				if (full_frames_received == 8) {
+					queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)));
+					full_frames_received = 0;
+				}
+				full_frames_received++;
 				// FIXME: do something with frame
 			}
 
@@ -147,10 +154,8 @@ void TelloDrone::cmd_receive_thread_routine() {
 }
 
 void TelloDrone::send_initialization_sequence() {
-	queue_packet(DronePacket(72, CommandID::GET_SSID));
-	queue_packet(DronePacket(104, CommandID::SET_RECORDING_MAYBE, {0x01}));
+	queue_packet(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE));
 	queue_packet(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
-	queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
 	queue_packet(DronePacket(72, CommandID::GET_BITRATE));
 	queue_packet(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
 	queue_packet(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
@@ -158,7 +163,10 @@ void TelloDrone::send_initialization_sequence() {
 	queue_packet(DronePacket(72, CommandID::GET_COUNTRY_CODE));
 	queue_packet(DronePacket(72, CommandID::SET_CAMERA_EV, {0x00}));
 	queue_packet(DronePacket(72, CommandID::SET_PHOTO_QUALITY, {0x00}));
-	queue_packet(DronePacket(72, CommandID::SET_BITRATE, {0x00})); // ??
+	queue_packet(DronePacket(72, CommandID::SET_BITRATE, {0x00}));
+	queue_packet(DronePacket(104, CommandID::SET_RECORDING_MAYBE, {0x01}));
+	queue_packet(DronePacket(72, CommandID::GET_SSID));
+	queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
 	queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, {0x00}));
 	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_DATA));
 	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
