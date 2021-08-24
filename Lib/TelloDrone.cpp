@@ -13,6 +13,8 @@
 static constexpr u16 TELLO_CMD_PORT = 8889;
 static constexpr u16 TELLO_VIDEO_PORT = 7777;
 static constexpr char const *TELLO_CMD_IP = "192.168.10.1";
+static constexpr u16 FFMPEG_PORT = 9999;
+static constexpr char const *FFMPEG_IP = "127.0.0.1";
 
 TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	m_video_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -20,7 +22,7 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("socket() -> m_video_socket_fd");
 		exit(1);
 	}
-	sockaddr_in video_receive_addr {};
+	sockaddr_in video_receive_addr{};
 	video_receive_addr.sin_family = AF_INET;
 	video_receive_addr.sin_addr.s_addr = INADDR_ANY;
 	video_receive_addr.sin_port = htons(TELLO_VIDEO_PORT);
@@ -28,7 +30,6 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("bind(m_video_socket_fd)");
 		exit(1);
 	}
-
 	struct timeval sock_timeout{};
 	sock_timeout.tv_sec = 1;
 	sock_timeout.tv_usec = 0;
@@ -36,6 +37,15 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("setsockopt()");
 		exit(1);
 	}
+
+	m_ffmpeg_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (m_ffmpeg_socket_fd == -1) {
+		perror("socket() -> m_ffmpeg_socket_fd");
+		exit(1);
+	}
+	m_ffmpeg_addr.sin_family = AF_INET;
+	m_ffmpeg_addr.sin_port = htons(FFMPEG_PORT);
+	m_ffmpeg_addr.sin_addr.s_addr = inet_addr(FFMPEG_IP);
 
 	m_cmd_socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (m_cmd_socket_fd == -1) {
@@ -121,6 +131,8 @@ void TelloDrone::video_receive_thread_routine() {
 
 		if (last_segment_in_frame) {
 			if (!discard_current_frame) {
+				sendto(m_ffmpeg_socket_fd, current_frame.data(), current_frame.size(), 0,
+					   reinterpret_cast<const sockaddr *>(&m_ffmpeg_addr), sizeof(m_ffmpeg_addr));
 				if constexpr (DEBUG_LOGGING)
 					std::cout << "Finished receiving full frame" << std::endl;
 				if (full_frames_received == 8) {

@@ -49,6 +49,8 @@ private:
 
 	std::thread m_video_receive_thread;
 	int m_video_socket_fd;
+	int m_ffmpeg_socket_fd;
+	sockaddr_in m_ffmpeg_addr {};
 
 	std::thread m_drone_controls_thread;
 
