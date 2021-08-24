@@ -22,7 +22,7 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	}
 	m_video_addr.sin_family = AF_INET;
 	m_video_addr.sin_port = htons(TELLO_VIDEO_PORT);
-	m_video_addr.sin_addr.s_addr = INADDR_ANY;
+	m_video_addr.sin_addr.s_addr = inet_addr(TELLO_CMD_IP);
 
 	struct timeval sock_timeout{};
 	sock_timeout.tv_sec = 1;
@@ -63,6 +63,10 @@ void TelloDrone::video_receive_thread_routine() {
 	while (!m_shutting_down) {
 		isize bytes_received = recvfrom(m_video_socket_fd, packet_buffer, sizeof(packet_buffer), 0,
 										reinterpret_cast<sockaddr *>(&m_video_addr), &video_addr_size);
+
+		if constexpr (DEBUG_LOGGING)
+			std::cout << "Received " << bytes_received << " video bytes" << std::endl;
+
 		if (bytes_received < 0) {
 			if (errno != EAGAIN)
 				std::cerr << "Failed to receive bytes from video socket, errno: " << strerror(errno) << std::endl;
