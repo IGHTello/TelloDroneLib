@@ -271,7 +271,10 @@ void TelloDrone::shutdown() {
 
 void TelloDrone::queue_packet(DronePacket packet) {
 	assert(packet.direction == PacketDirection::TO_DRONE);
-	packet.seq_num = m_cmd_seq_num++;
+	if (packet.cmd_id == CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)
+		packet.seq_num = 0;
+	else
+		packet.seq_num = m_cmd_seq_num++;
 	auto packet_bytes = packet.serialize();
 	sendto(m_cmd_socket_fd, packet_bytes.data(), packet_bytes.size(), 0,
 		   reinterpret_cast<const sockaddr *>(&m_cmd_addr), sizeof(m_cmd_addr));

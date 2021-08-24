@@ -44,6 +44,7 @@ enum struct CommandID : u16 {
 	TAKE_OFF = 84,
 	LAND_DRONE = 85,
 	FLIGHT_DATA = 86,
+	SET_FLIGHT_HEIGHT_LIMIT = 88,
 	FLIP_DRONE = 92, // TODO: TestActivity expects payload in response?!
 	THROW_AND_FLY = 93,
 	PALM_LAND = 94,
