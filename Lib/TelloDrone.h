@@ -11,8 +11,9 @@
 #include <chrono>
 #include "Utils/Types.h"
 #include "DronePacket.h"
+#include "DroneData.h"
 
-static constexpr bool DEBUG_LOGGING = false;
+#define DEBUG_LOGGING 0
 
 class TelloDrone {
 public:
@@ -24,17 +25,20 @@ public:
     [[nodiscard]] bool is_connected();
     void wait_until_connected();
 
-
 private:
+	void send_initialization_sequence();
+	void send_setup_packet_if_needed();
+
     void queue_packet(DronePacket packet);
     void send_packet_and_wait_until_ack(const DronePacket& packet);
 
     void handle_packet(const DronePacket& packet);
 
+	void drone_controls_thread_routine();
     void cmd_receive_thread_routine();
     void video_receive_thread_routine();
 
-	std::thread m_cmd_send_thread;
+	std::thread m_cmd_receive_thread;
     int m_cmd_socket_fd;
     sockaddr_in m_cmd_addr {};
 
@@ -47,31 +51,15 @@ private:
 	int m_video_socket_fd;
     sockaddr_in m_video_addr {};
 
-	struct {
-		std::string ssid;
-		std::string firmware_version;
-		std::string loader_version;
-		u8 bitrate { 0 };
-		u16 flight_height_limit { 0 };
-		u16 low_battery_warning { 0 };
-		float attitude_angle { 0 };
-		std::string country_code;
-		struct {
-			std::chrono::system_clock::time_point activation_time;
-			u8 raw_serial_data[14];
-			std::string serial_number;
-			bool unknown_flag;
-			std::chrono::system_clock::time_point unknown_time;
-			u8 unknown_data[14];
-		} activation_data;
-		std::string unique_identifier;
-		bool activation_status { false };
-	} m_drone_info;
+	std::thread m_drone_controls_thread;
+
+	DroneInfo m_drone_info;
 
 	std::chrono::system_clock::time_point m_last_update_time;
 	bool m_connected { false };
 	std::mutex m_connected_mutex;
 	std::condition_variable m_connected_cv;
+	u8 m_connection_request_ticks { 0 };
 
 	bool m_shutting_down { false };
 };

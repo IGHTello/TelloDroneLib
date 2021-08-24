@@ -1,12 +1,14 @@
 #include "TelloDrone.h"
 #include <iostream>
 #include <unistd.h>
-#include <string.h>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <chrono>
 #include <thread>
 #include <span>
+#include <cassert>
+#include <sstream>
 
 static constexpr u16 TELLO_CMD_PORT = 8889;
 static constexpr u16 TELLO_VIDEO_PORT = 7777;
@@ -18,7 +20,6 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("socket() -> m_video_socket_fd");
 		exit(1);
 	}
-
 	m_video_addr.sin_family = AF_INET;
 	m_video_addr.sin_port = htons(TELLO_VIDEO_PORT);
 	m_video_addr.sin_addr.s_addr = INADDR_ANY;
@@ -28,7 +29,6 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 		perror("socket() -> m_cmd_socket_fd");
 		exit(1);
 	}
-
 	m_cmd_addr.sin_family = AF_INET;
 	m_cmd_addr.sin_port = htons(TELLO_CMD_PORT);
 	m_cmd_addr.sin_addr.s_addr = inet_addr(TELLO_CMD_IP);
@@ -42,7 +42,8 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	}
 
 	m_video_receive_thread = std::thread(&TelloDrone::video_receive_thread_routine, this);
-	m_cmd_send_thread = std::thread(&TelloDrone::cmd_receive_thread_routine, this);
+	m_cmd_receive_thread = std::thread(&TelloDrone::cmd_receive_thread_routine, this);
+	m_drone_controls_thread = std::thread(&TelloDrone::drone_controls_thread_routine, this);
 }
 
 void TelloDrone::video_receive_thread_routine() {
@@ -132,11 +133,78 @@ void TelloDrone::cmd_receive_thread_routine() {
 			continue;
 		}
 
-		auto packet = DronePacket::deserialize(std::span<u8>(packet_buffer, bytes_received), false);
+		auto packet = DronePacket::deserialize(std::span<u8>(packet_buffer, bytes_received));
 		if (packet.has_value())
 			handle_packet(packet.value());
 		else if constexpr (DEBUG_LOGGING)
 			std::cerr << "Failed to parse packet of length `" << bytes_received << "`" << std::endl;
+	}
+}
+
+void TelloDrone::send_initialization_sequence() {
+	queue_packet(DronePacket(72, CommandID::GET_SSID));
+	queue_packet(DronePacket(104, CommandID::SET_RECORDING_MAYBE, {0x01}));
+	queue_packet(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
+	queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
+	queue_packet(DronePacket(72, CommandID::GET_BITRATE));
+	queue_packet(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
+	queue_packet(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
+	queue_packet(DronePacket(72, CommandID::GET_ATTITUDE_ANGLE));
+	queue_packet(DronePacket(72, CommandID::GET_COUNTRY_CODE));
+	queue_packet(DronePacket(72, CommandID::SET_CAMERA_EV, {0x00}));
+	queue_packet(DronePacket(72, CommandID::SET_PHOTO_QUALITY, {0x00}));
+	queue_packet(DronePacket(72, CommandID::SET_BITRATE, {0x00})); // ??
+	queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, {0x00}));
+	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_DATA));
+	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
+}
+
+void TelloDrone::send_setup_packet_if_needed() {
+	if (m_connection_request_ticks >= 50 || m_connection_request_ticks == 0) {
+		m_connection_request_ticks = 0;
+
+		std::vector<u8> packet_bytes(2);
+		packet_bytes[0] = TELLO_VIDEO_PORT & 0xFF;
+		packet_bytes[1] = (TELLO_VIDEO_PORT >> 8) & 0xFF;
+		queue_packet(DronePacket(0, CommandID::CONN_REQ, std::move(packet_bytes)));
+	}
+	m_connection_request_ticks++;
+}
+
+void TelloDrone::drone_controls_thread_routine() {
+	while (!m_shutting_down) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+		if (!m_connected)
+			send_setup_packet_if_needed();
+
+		std::vector<u8> packet_data(11);
+		u64 joystick_unk1 = 1024;
+		u64 joystick_unk2 = 1024;
+		u64 joystick_unk3 = 1024;
+		u64 joystick_unk4 = 1024;
+		u64 flight_speed_quick = 0;
+		u64 packed_drone_controls =
+				(joystick_unk1 & 0x7FF) | ((joystick_unk2 & 0x7FF) << 11) | ((joystick_unk3 & 0x7FF) << 22) |
+				((joystick_unk4 & 0x7FF) << 33) | (flight_speed_quick << 44);
+		packet_data[0] = packed_drone_controls & 0xFF;
+		packet_data[1] = (packed_drone_controls >> 8) & 0xFF;
+		packet_data[2] = (packed_drone_controls >> 16) & 0xFF;
+		packet_data[3] = (packed_drone_controls >> 24) & 0xFF;
+		packet_data[4] = (packed_drone_controls >> 32) & 0xFF;
+		packet_data[5] = (packed_drone_controls >> 40) & 0xFF;
+
+		auto current_time_point = std::chrono::system_clock::now();
+		auto days = std::chrono::floor<std::chrono::days>(current_time_point);
+		auto time = std::chrono::hh_mm_ss(std::chrono::floor<std::chrono::milliseconds>(current_time_point - days));
+		packet_data[6] = time.hours().count();
+		packet_data[7] = time.minutes().count();
+		packet_data[8] = time.seconds().count();
+		auto milliseconds = time.subseconds().count();
+		packet_data[9] = milliseconds & 0xFF;
+		packet_data[10] = (milliseconds >> 8) & 0xFF;
+
+		queue_packet(DronePacket(96, CommandID::SET_CURRENT_FLIGHT_CONTROLS, std::move(packet_data)));
 	}
 }
 
@@ -158,15 +226,21 @@ void TelloDrone::wait_until_connected() {
 void TelloDrone::shutdown() {
 	if (m_shutting_down)
 		return;
+
+	// FIXME: Send some kind of land packet?
+	queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, {0, 0}));
+
 	m_shutting_down = true;
-	// FIXME: LAND
 	m_video_receive_thread.join();
 	close(m_video_socket_fd);
-	m_cmd_send_thread.join();
+	m_cmd_receive_thread.join();
 	close(m_cmd_socket_fd);
+	m_drone_controls_thread.join();
 }
 
 void TelloDrone::queue_packet(DronePacket packet) {
+	assert(packet.direction == PacketDirection::TO_DRONE);
+	packet.seq_num = m_cmd_seq_num++;
 	auto packet_bytes = packet.serialize();
 	sendto(m_cmd_socket_fd, packet_bytes.data(), packet_bytes.size(), 0,
 		   reinterpret_cast<const sockaddr *>(&m_cmd_addr), sizeof(m_cmd_addr));
@@ -181,12 +255,7 @@ void TelloDrone::send_packet_and_wait_until_ack(const DronePacket &packet) {
 }
 
 void TelloDrone::handle_packet(const DronePacket &packet) {
-	bool success;
-	if (!packet.data.empty()) {
-		success = packet.data[0] == 0;
-	} else {
-		success = false;
-	}
+	assert(packet.direction == PacketDirection::FROM_DRONE);
 
 	auto add_packet_ack = [&]() {
 		std::unique_lock<std::mutex> lock(m_received_acks_mutex);
@@ -194,8 +263,9 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 		m_received_acks_cv.notify_all();
 	};
 
+	bool success = !packet.data.empty() && packet.data[0] == 0;
 	switch (packet.cmd_id) {
-		case DronePacket::CommandID::FLIGHT_DATA: {
+		case CommandID::FLIGHT_DATA: {
 			auto time_since_last_update = std::chrono::duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now() - m_last_update_time);
 			if (time_since_last_update.count() > 3000) {
@@ -205,33 +275,186 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 				std::unique_lock<std::mutex> lock(m_connected_mutex);
 				m_connected = true;
 				lock.unlock();
+
+				send_initialization_sequence();
+
 				m_connected_cv.notify_all();
-				// FIXME: do connection stuff
 			}
 			break;
 		}
-		case DronePacket::CommandID::SET_SSID:
-		case DronePacket::CommandID::SET_COUNTRY_CODE:
-		case DronePacket::CommandID::SET_WIFI_PASSWORD:
-		case DronePacket::CommandID::SET_ATTITUDE_ANGLE:
-		case DronePacket::CommandID::ACTIVATE_DRONE:
-		case DronePacket::CommandID::SET_BITRATE:
-		case DronePacket::CommandID::SET_EIS:
-		case DronePacket::CommandID::SET_AUTOMATIC_BITRATE:
-		case DronePacket::CommandID::SET_RECORDING_MAYBE:
-		case DronePacket::CommandID::SET_CAMERA_EV:
-		case DronePacket::CommandID::SET_PHOTO_QUALITY:
-		case DronePacket::CommandID::SET_CAMERA_MODE:
-		case DronePacket::CommandID::LAND_DRONE:
-		case DronePacket::CommandID::TAKE_OFF:
-		case DronePacket::CommandID::TAKE_A_PICTURE:
-		case DronePacket::CommandID::FLIP_DRONE:
-		case DronePacket::CommandID::THROW_AND_FLY:
-		case DronePacket::CommandID::PALM_LAND:
-		case DronePacket::CommandID::SET_LOW_BATTERY_WARNING:
-		case DronePacket::CommandID::CONN_ACK:
+		case CommandID::SET_SSID:
+		case CommandID::SET_COUNTRY_CODE:
+		case CommandID::SET_WIFI_PASSWORD:
+		case CommandID::SET_ATTITUDE_ANGLE:
+		case CommandID::ACTIVATE_DRONE:
+		case CommandID::SET_BITRATE:
+		case CommandID::SET_EIS:
+		case CommandID::SET_AUTOMATIC_BITRATE:
+		case CommandID::SET_RECORDING_MAYBE:
+		case CommandID::SET_CAMERA_EV:
+		case CommandID::SET_PHOTO_QUALITY:
+		case CommandID::SET_CAMERA_MODE:
+		case CommandID::LAND_DRONE:
+		case CommandID::TAKE_OFF:
+		case CommandID::TAKE_A_PICTURE:
+		case CommandID::FLIP_DRONE:
+		case CommandID::THROW_AND_FLY:
+		case CommandID::PALM_LAND:
+		case CommandID::SET_LOW_BATTERY_WARNING:
+		case CommandID::CONN_ACK: {
 			add_packet_ack();
 			break;
+		}
+		case CommandID::DRONE_LOG_HEADER: {
+			assert(packet.data.size() >= 3);
+			std::vector<u8> packet_bytes(3);
+			packet_bytes[0] = 0x00;
+			packet_bytes[1] = packet.data[0];
+			packet_bytes[2] = packet.data[1];
+			queue_packet(DronePacket(80, CommandID::DRONE_LOG_HEADER, std::move(packet_bytes)));
+			break;
+		}
+		case CommandID::DRONE_LOG_CONFIGURATION: {
+			assert(packet.data.size() >= 7);
+			std::vector<u8> packet_bytes(7);
+			packet_bytes[0] = 0x00;
+			packet_bytes[1] = packet.data[1];
+			packet_bytes[2] = packet.data[2];
+			packet_bytes[3] = packet.data[3];
+			packet_bytes[4] = packet.data[4];
+			packet_bytes[5] = packet.data[5];
+			packet_bytes[6] = packet.data[6];
+			queue_packet(DronePacket(80, CommandID::DRONE_LOG_CONFIGURATION, std::move(packet_bytes)));
+			break;
+		}
+		case CommandID::GET_CURRENT_TIME: {
+			std::vector<u8> packet_bytes(14);
+			auto current_time_point = std::chrono::system_clock::now();
+			auto days = std::chrono::floor<std::chrono::days>(current_time_point);
+			auto date = std::chrono::year_month_day(days);
+			auto time = std::chrono::hh_mm_ss(std::chrono::floor<std::chrono::milliseconds>(current_time_point - days));
+			auto year = static_cast<i32>(date.year());
+			auto month = static_cast<u32>(date.month());
+			auto day = static_cast<u32>(date.day());
+			auto hours = time.hours().count();
+			auto minutes = time.minutes().count();
+			auto seconds = time.seconds().count();
+			auto milliseconds = time.subseconds().count();
+			packet_bytes[0] = year & 0xFF;
+			packet_bytes[1] = (year >> 8) & 0xFF;
+			packet_bytes[2] = month & 0xFF;
+			packet_bytes[3] = (month >> 8) & 0xFF;
+			packet_bytes[4] = day & 0xFF;
+			packet_bytes[5] = (day >> 8) & 0xFF;
+			packet_bytes[6] = hours & 0xFF;
+			packet_bytes[7] = (hours >> 8) & 0xFF;
+			packet_bytes[8] = minutes & 0xFF;
+			packet_bytes[9] = (minutes >> 8) & 0xFF;
+			packet_bytes[10] = seconds & 0xFF;
+			packet_bytes[11] = (seconds >> 8) & 0xFF;
+			packet_bytes[12] = milliseconds & 0xFF;
+			packet_bytes[13] = (milliseconds >> 8) & 0xFF;
+			queue_packet(DronePacket(80, CommandID::GET_CURRENT_TIME, std::move(packet_bytes)));
+			break;
+		}
+		case CommandID::GET_SSID: {
+			if (success) {
+				assert(packet.data.size() >= 2);
+				m_drone_info.ssid = std::string(packet.data.begin() + 1, packet.data.end());
+			} else {
+				std::cerr << "GET_SSID failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_FIRMWARE_VERSION: {
+			if (success) {
+				assert(packet.data.size() >= 11);
+				m_drone_info.firmware_version = std::string(packet.data.begin() + 1, packet.data.begin() + 11);
+			} else {
+				std::cerr << "GET_FIRMWARE_VERSION failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_LOADER_VERSION: {
+			if (success) {
+				assert(packet.data.size() >= 11);
+				m_drone_info.loader_version = std::string(packet.data.begin() + 1, packet.data.begin() + 11);
+			} else {
+				std::cerr << "GET_LOADER_VERSION failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_BITRATE: {
+			if (success) {
+				assert(packet.data.size() >= 2);
+				m_drone_info.bitrate = packet.data[1];
+			} else {
+				std::cerr << "GET_BITRATE failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_FLIGHT_HEIGHT_LIMIT: {
+			if (success) {
+				assert(packet.data.size() >= 3);
+				m_drone_info.flight_height_limit = packet.data[1] | ((u16) packet.data[2] << 8);
+			} else {
+				std::cerr << "GET_FLIGHT_HEIGHT_LIMIT failed" << std::endl;
+			}
+		}
+		case CommandID::GET_LOW_BATTERY_WARNING: {
+			if (success) {
+				assert(packet.data.size() >= 3);
+				m_drone_info.low_battery_warning = packet.data[1] | ((u16) packet.data[2] << 8);
+			} else {
+				std::cerr << "GET_LOW_BATTERY_WARNING failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_ATTITUDE_ANGLE: {
+			if (success) {
+				assert(packet.data.size() >= 5);
+				u32 float_bytes = packet.data[1] | ((u32) packet.data[2] << 8) | ((u32) packet.data[3] << 16) |
+								  ((u32) packet.data[4] << 24);
+				m_drone_info.attitude_angle = *reinterpret_cast<float *>(&float_bytes);
+			} else {
+				std::cerr << "GET_ATTITUDE_ANGLE failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_COUNTRY_CODE: {
+			if (success) {
+				assert(packet.data.size() >= 3);
+				m_drone_info.country_code = std::string(packet.data.begin() + 1, packet.data.begin() + 3);
+			} else {
+				std::cerr << "GET_COUNTRY_CODE failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_ACTIVATION_DATA: {
+			if (success) {
+				assert(packet.data.size() >= 58);
+				std::cout << "FIXME ACTIVATION DATA" << std::endl;
+			} else {
+				std::cerr << "GET_ACTIVATION_DATA failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_UNIQUE_IDENTIFIER: {
+			if (success) {
+				assert(packet.data.size() >= 17);
+				std::stringstream stream;
+				for (size_t i = 0; i < 16; ++i)
+					stream << std::hex << packet.data[i + 1];
+				m_drone_info.unique_identifier = stream.str();
+			} else {
+				std::cerr << "GET_UNIQUE_IDENTIFIER failed" << std::endl;
+			}
+			break;
+		}
+		case CommandID::GET_ACTIVATION_STATUS: {
+			m_drone_info.activation_status = success;
+			break;
+		}
 		default:
 			if constexpr (DEBUG_LOGGING)
 				std::cerr << "Unhandled packet with cmd_id=" << static_cast<u16>(packet.cmd_id) << std::endl;

@@ -12,12 +12,6 @@ std::vector<u8> DronePacket::serialize() {
         packet_bytes.push_back(data[0]);
         packet_bytes.push_back(data[1]);
         return packet_bytes;
-    } else if(cmd_id == CommandID::CONN_ACK) {
-        const char* header = "conn_ack:";
-        packet_bytes.assign(header, header + 9);
-        packet_bytes.push_back(data[0]);
-        packet_bytes.push_back(data[1]);
-        return packet_bytes;
     }
 
     packet_bytes.resize(MINIMUM_PACKET_LENGTH + data.size());
@@ -44,17 +38,13 @@ std::vector<u8> DronePacket::serialize() {
     return packet_bytes;
 }
 
-std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes, bool to_drone) {
+std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes) {
     if(packet_bytes.size() < MINIMUM_PACKET_LENGTH)
         return {};
 
-    if(to_drone && memcmp(packet_bytes.data(), "conn_req:", 9) == 0) {
+    if(memcmp(packet_bytes.data(), "conn_ack:", 9) == 0) {
         auto packet_data = std::vector<u8>(packet_bytes.begin() + 9, packet_bytes.end());
-        return DronePacket(0, 0, CommandID::CONN_REQ, std::move(packet_data), to_drone);
-    }
-    if(!to_drone && memcmp(packet_bytes.data(), "conn_ack:", 9) == 0) {
-        auto packet_data = std::vector<u8>(packet_bytes.begin() + 9, packet_bytes.end());
-        return DronePacket(0, 0, CommandID::CONN_ACK, std::move(packet_data), to_drone);
+        return DronePacket(0, 0, CommandID::CONN_ACK, std::move(packet_data));
     }
 
     if(packet_bytes[0] != 0xCC)
@@ -77,5 +67,5 @@ std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes, 
     u16 seq_num = (static_cast<u16>(packet_bytes[8]) << 8) | packet_bytes[7];
     std::vector<u8> data(packet_bytes.begin() + 9, packet_bytes.begin() + 9 + data_length);
 
-    return DronePacket(seq_num, packet_type, static_cast<CommandID>(cmd_id), std::move(data), to_drone);
+    return DronePacket(seq_num, packet_type, static_cast<CommandID>(cmd_id), std::move(data));
 }
