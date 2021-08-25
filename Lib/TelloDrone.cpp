@@ -306,7 +306,7 @@ void Drone::shutdown()
     m_drone_controls_thread.join();
 }
 
-void Drone::queue_packet(DronePacket packet)
+void Drone::queue_packet_internal(DronePacket& packet)
 {
     assert(packet.direction == PacketDirection::TO_DRONE);
     if (packet.cmd_id == CommandID::CONN_REQ || packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS || packet.cmd_id == CommandID::SET_CURRENT_FLIGHT_CONTROLS) {
@@ -320,9 +320,9 @@ void Drone::queue_packet(DronePacket packet)
         reinterpret_cast<const sockaddr*>(&m_cmd_addr), sizeof(m_cmd_addr));
 }
 
-void Drone::send_packet_and_wait_until_ack(const DronePacket& packet)
+void Drone::send_packet_and_wait_until_ack(DronePacket packet)
 {
-    queue_packet(packet);
+    queue_packet_internal(packet);
     if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
         std::cout << "Waiting for ack for packet " << packet.seq_num << " of type " << static_cast<u16>(packet.cmd_id) << std::endl;
     std::unique_lock<std::mutex> lock(m_received_acks_mutex);

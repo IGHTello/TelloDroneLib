@@ -5,11 +5,11 @@
 #include "Utils/Types.h"
 #include <arpa/inet.h>
 #include <atomic>
+#include <bitset>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <netinet/in.h>
-#include <bitset>
 #include <sys/socket.h>
 #include <thread>
 
@@ -51,8 +51,9 @@ private:
     void send_initialization_sequence();
     void send_timed_requests_if_needed();
 
-    void queue_packet(DronePacket packet);
-    void send_packet_and_wait_until_ack(const DronePacket& packet);
+    void queue_packet_internal(DronePacket& packet);
+    void queue_packet(DronePacket packet) { queue_packet_internal(packet); }
+    void send_packet_and_wait_until_ack(DronePacket packet);
 
     void handle_packet(const DronePacket& packet);
 
