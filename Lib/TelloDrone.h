@@ -41,6 +41,10 @@ public:
     [[nodiscard]] std::string get_unique_identifier() const;
     [[nodiscard]] bool get_activation_status() const;
 
+    // Actions
+    void take_off();
+    void land();
+
 private:
     void send_setup_packet();
     void send_initialization_sequence();

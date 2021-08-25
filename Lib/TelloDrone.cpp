@@ -296,7 +296,7 @@ void Drone::shutdown()
     if (m_shutting_down)
         return;
 
-    // FIXME: Send some kind of land packet?
+    queue_packet(DronePacket(104, CommandID::LAND_DRONE, {0x00}));
     queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 
     m_shutting_down = true;
@@ -594,6 +594,16 @@ std::string Drone::get_unique_identifier() const
 bool Drone::get_activation_status() const
 {
     return m_drone_info.activation_status;
+}
+
+void Drone::take_off()
+{
+    send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
+}
+
+void Drone::land()
+{
+    send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, {0x00}));
 }
 
 }
