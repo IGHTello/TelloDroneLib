@@ -81,7 +81,7 @@ void TelloDrone::video_receive_thread_routine() {
 		isize bytes_received = recvfrom(m_video_socket_fd, packet_buffer, sizeof(packet_buffer), 0, nullptr, nullptr);
 
 		if (bytes_received < 0) {
-			if (errno != EAGAIN)
+			if (VIDEO_DEBUG_LOGGING && errno != EAGAIN)
 				std::cerr << "Failed to receive bytes from video socket, errno: " << strerror(errno) << std::endl;
 			continue;
 		}
@@ -140,7 +140,7 @@ void TelloDrone::video_receive_thread_routine() {
 					current_frame[3] == 0x01) { // NAL Unit Start Code Prefix
 					u8 nal_type = current_frame[4] & 0x1F;
 					if (nal_type == 7) {
-						if constexpr (VIDEO_DEBUG_LOGGING)
+						if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 							std::cout << "Received sequence parameter set" << std::endl;
 						received_sequence_parameter_set = true;
 					}
@@ -495,7 +495,7 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 		case CommandID::GET_ACTIVATION_DATA: {
 			if (success) {
 				assert(packet.data.size() >= 58);
-				std::cout << "FIXME ACTIVATION DATA" << std::endl;
+				// FIXME: Parse DATA
 			} else {
 				std::cerr << "GET_ACTIVATION_DATA failed" << std::endl;
 			}
