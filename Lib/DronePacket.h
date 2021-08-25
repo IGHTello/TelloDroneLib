@@ -22,7 +22,7 @@ enum struct CommandID : u16 {
 	SET_BITRATE = 32,
 	SET_AUTOMATIC_BITRATE = 33,
 	SET_EIS = 36, // Electronic Image Stabilization
-	PRODUCE_VIDEO_I_FRAME_MAYBE = 37, // Sequence number always 0 TODO: Seems like app drives this...
+	REQUEST_VIDEO_SPS_PPS_HEADERS = 37, // Sequence number always 0
 	GET_BITRATE = 40,
 	TAKE_A_PICTURE = 48,
 	SET_CAMERA_MODE = 49,

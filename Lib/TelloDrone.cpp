@@ -72,7 +72,7 @@ void TelloDrone::video_receive_thread_routine() {
 	isize last_segment_num_received = -1;
 	bool discard_current_frame = false;
 	bool received_sequence_parameter_set = false;
-	u8 full_frames_received = 0;
+	u8 frames_since_last_SPS_request = 0;
 
 	u8 packet_buffer[4096];
 	while (!m_shutting_down) {
@@ -81,7 +81,6 @@ void TelloDrone::video_receive_thread_routine() {
 		if (bytes_received < 0) {
 			if (errno != EAGAIN)
 				std::cerr << "Failed to receive bytes from video socket, errno: " << strerror(errno) << std::endl;
-			queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE))); // FIXME: ???
 			continue;
 		}
 
@@ -138,18 +137,24 @@ void TelloDrone::video_receive_thread_routine() {
 				if (current_frame[0] == 0x00 && current_frame[1] == 0x00 && current_frame[2] == 0x00 &&
 					current_frame[3] == 0x01) { // NAL Unit Start Code Prefix
 					u8 nal_type = current_frame[4] & 0x1F;
-					if (nal_type == 7)
+					if (nal_type == 7) {
+						if constexpr (DEBUG_LOGGING)
+							std::cout << "Received sequence parameter set" << std::endl;
 						received_sequence_parameter_set = true;
+					}
 				}
-				if (received_sequence_parameter_set)
+				if (received_sequence_parameter_set) {
 					sendto(m_ffmpeg_socket_fd, current_frame.data(), current_frame.size(), 0,
 						   reinterpret_cast<const sockaddr *>(&m_ffmpeg_addr), sizeof(m_ffmpeg_addr));
-
-				if (full_frames_received == 8) {
-					queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)));
-					full_frames_received = 0;
+				} else {
+					if (frames_since_last_SPS_request == 8) {
+						if constexpr (DEBUG_LOGGING)
+							std::cout << "Requesting sequence parameter set" << std::endl;
+						queue_packet(DronePacket(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS)));
+						frames_since_last_SPS_request = 0;
+					}
+					frames_since_last_SPS_request++;
 				}
-				full_frames_received++;
 			}
 
 			current_frame.clear();
@@ -181,7 +186,7 @@ void TelloDrone::cmd_receive_thread_routine() {
 }
 
 void TelloDrone::send_initialization_sequence() {
-	queue_packet(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE));
+	queue_packet(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS));
 	queue_packet(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
 	queue_packet(DronePacket(72, CommandID::GET_BITRATE));
 	queue_packet(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
@@ -280,7 +285,7 @@ void TelloDrone::shutdown() {
 
 void TelloDrone::queue_packet(DronePacket packet) {
 	assert(packet.direction == PacketDirection::TO_DRONE);
-	if (packet.cmd_id == CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)
+	if (packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS)
 		packet.seq_num = 0;
 	else
 		packet.seq_num = m_cmd_seq_num++;
