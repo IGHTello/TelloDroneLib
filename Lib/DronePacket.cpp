@@ -19,7 +19,7 @@ std::vector<u8> DronePacket::serialize() {
     u16 packet_length = (MINIMUM_PACKET_LENGTH + data.size()) << 3;
     packet_bytes[1] = packet_length & 0xFF;
     packet_bytes[2] = packet_length >> 8;
-    packet_bytes[3] = fast_crc8(packet_bytes);
+    packet_bytes[3] = fast_crc8({ packet_bytes.begin(), 3 });
     packet_bytes[4] = packet_type;
     packet_bytes[5] = static_cast<u16>(cmd_id) & 0xFF;
     packet_bytes[6] = static_cast<u16>(cmd_id) >> 8;
