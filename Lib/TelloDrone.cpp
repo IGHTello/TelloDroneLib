@@ -334,7 +334,7 @@ void Drone::handle_packet(const DronePacket& packet)
 {
     assert(packet.direction == PacketDirection::FROM_DRONE);
 
-    if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
+    if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
         std::cout << "Received packet of type " << static_cast<u16>(packet.cmd_id) << std::endl;
 
     auto add_packet_ack = [&]() {
