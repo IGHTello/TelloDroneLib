@@ -35,8 +35,7 @@ Drone::Drone()
         perror("bind(m_video_socket_fd)");
         exit(1);
     }
-    struct timeval sock_timeout {
-    };
+    timeval sock_timeout {};
     sock_timeout.tv_sec = 1;
     sock_timeout.tv_usec = 0;
     if (setsockopt(m_video_socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char*)&sock_timeout, sizeof(sock_timeout)) < 0) {
@@ -276,7 +275,7 @@ void Drone::drone_controls_thread_routine()
 
 Drone::~Drone()
 {
-    shutdown();
+    close();
 }
 
 bool Drone::is_connected()
@@ -288,22 +287,21 @@ bool Drone::is_connected()
 void Drone::wait_until_connected()
 {
     std::unique_lock<std::mutex> lock(m_connected_mutex);
-    m_connected_cv.wait(lock, [this](){ return m_connected; });
+    m_connected_cv.wait(lock, [this]() { return m_connected; });
 }
 
-void Drone::shutdown()
+void Drone::close()
 {
     if (m_shutting_down)
         return;
 
     queue_packet(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
-    // queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 
     m_shutting_down = true;
     m_video_receive_thread.join();
-    close(m_video_socket_fd);
+    ::close(m_video_socket_fd);
     m_cmd_receive_thread.join();
-    close(m_cmd_socket_fd);
+    ::close(m_cmd_socket_fd);
     m_drone_controls_thread.join();
 }
 
@@ -646,6 +644,11 @@ bool Drone::take_off()
 bool Drone::land()
 {
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
+}
+
+void Drone::shutdown()
+{
+    queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 }
 
 }

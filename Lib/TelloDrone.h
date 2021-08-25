@@ -25,8 +25,6 @@ public:
     Drone();
     ~Drone();
 
-    void shutdown();
-
     [[nodiscard]] bool is_connected();
     void wait_until_connected();
 
@@ -45,8 +43,11 @@ public:
     // Actions
     bool take_off();
     bool land();
+    void shutdown();
 
 private:
+    void close();
+
     void send_setup_packet();
     void send_initialization_sequence();
     void send_timed_requests_if_needed();
