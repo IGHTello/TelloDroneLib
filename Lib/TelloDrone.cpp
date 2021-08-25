@@ -311,10 +311,12 @@ void Drone::shutdown()
 void Drone::queue_packet(DronePacket packet)
 {
     assert(packet.direction == PacketDirection::TO_DRONE);
-    if (packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS || packet.cmd_id == CommandID::SET_CURRENT_FLIGHT_CONTROLS)
+    if (packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS || packet.cmd_id == CommandID::SET_CURRENT_FLIGHT_CONTROLS) {
         packet.seq_num = 0;
-    else
+    } else {
         packet.seq_num = m_cmd_seq_num++;
+        m_received_acks[packet.seq_num] = false;
+    }
     auto packet_bytes = packet.serialize();
     sendto(m_cmd_socket_fd, packet_bytes.data(), packet_bytes.size(), 0,
         reinterpret_cast<const sockaddr*>(&m_cmd_addr), sizeof(m_cmd_addr));
@@ -324,9 +326,8 @@ void Drone::send_packet_and_wait_until_ack(const DronePacket& packet)
 {
     queue_packet(packet);
     std::unique_lock<std::mutex> lock(m_received_acks_mutex);
-    while (!m_received_acks.contains(packet.seq_num))
+    while (!m_received_acks[packet.seq_num])
         m_received_acks_cv.wait(lock);
-    m_received_acks.erase(packet.seq_num);
 }
 
 void Drone::handle_packet(const DronePacket& packet)
@@ -335,7 +336,8 @@ void Drone::handle_packet(const DronePacket& packet)
 
     auto add_packet_ack = [&]() {
         std::unique_lock<std::mutex> lock(m_received_acks_mutex);
-        m_received_acks.insert(packet.seq_num);
+        m_received_acks[packet.seq_num] = true;
+        lock.unlock();
         m_received_acks_cv.notify_all();
     };
 
@@ -604,7 +606,7 @@ void Drone::take_off()
 
 void Drone::land()
 {
-    send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, {0x00}));
+    send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
 }
 
 }

@@ -9,7 +9,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <netinet/in.h>
-#include <set>
+#include <bitset>
 #include <sys/socket.h>
 #include <thread>
 
@@ -64,7 +64,7 @@ private:
     sockaddr_in m_cmd_addr {};
 
     std::atomic<u16> m_cmd_seq_num;
-    std::set<u16> m_received_acks;
+    std::bitset<65536> m_received_acks;
     std::mutex m_received_acks_mutex;
     std::condition_variable m_received_acks_cv;
 
