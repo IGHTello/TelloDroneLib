@@ -325,6 +325,8 @@ void Drone::queue_packet(DronePacket packet)
 void Drone::send_packet_and_wait_until_ack(const DronePacket& packet)
 {
     queue_packet(packet);
+    if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
+        std::cout << "Waiting for ack for packet " << packet.seq_num << " of type " << static_cast<u16>(packet.cmd_id) << std::endl;
     std::unique_lock<std::mutex> lock(m_received_acks_mutex);
     while (!m_received_acks[packet.seq_num])
         m_received_acks_cv.wait(lock);
