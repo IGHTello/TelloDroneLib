@@ -87,7 +87,7 @@ void TelloDrone::video_receive_thread_routine() {
 		}
 
 		if (bytes_received < 2) {
-			if constexpr (DEBUG_LOGGING)
+			if constexpr (VIDEO_DEBUG_LOGGING)
 				std::cerr << "Received invalid video packet, less than 2 bytes of data!" << std::endl;
 			continue;
 		}
@@ -96,12 +96,12 @@ void TelloDrone::video_receive_thread_routine() {
 		auto segment_num = packet_buffer[1] & 127;
 		auto last_segment_in_frame = (packet_buffer[1] & 128) == 128;
 
-		if constexpr (DEBUG_LOGGING)
+		if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 			std::cout << "Got segment " << segment_num << " of frame " << frame_num << " (end=" << last_segment_in_frame
 					  << "), last was " << last_segment_num_received << " of frame " << current_frame_num << std::endl;
 
 		if (frame_num != current_frame_num) {
-			if constexpr (DEBUG_LOGGING)
+			if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 				std::cout << "Lost segments on frame boundary " << current_frame_num << ':' << frame_num << std::endl;
 			// Seems like we lost part of the last frame, so we'll have to discard it
 
@@ -119,7 +119,7 @@ void TelloDrone::video_receive_thread_routine() {
 		}
 
 		if (((last_segment_num_received + 1) & 127) != segment_num) {
-			if constexpr (DEBUG_LOGGING)
+			if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 				std::cout << "Lost segments of frame " << current_frame_num << std::endl;
 			// Seems like we lost part of this frame, discard it
 			discard_current_frame = true;
@@ -133,14 +133,14 @@ void TelloDrone::video_receive_thread_routine() {
 
 		if (last_segment_in_frame) {
 			if (!discard_current_frame) {
-				if constexpr (DEBUG_LOGGING)
+				if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 					std::cout << "Finished receiving full frame" << std::endl;
 
 				if (current_frame[0] == 0x00 && current_frame[1] == 0x00 && current_frame[2] == 0x00 &&
 					current_frame[3] == 0x01) { // NAL Unit Start Code Prefix
 					u8 nal_type = current_frame[4] & 0x1F;
 					if (nal_type == 7) {
-						if constexpr (DEBUG_LOGGING)
+						if constexpr (VIDEO_DEBUG_LOGGING)
 							std::cout << "Received sequence parameter set" << std::endl;
 						received_sequence_parameter_set = true;
 					}
@@ -150,7 +150,7 @@ void TelloDrone::video_receive_thread_routine() {
 						   reinterpret_cast<const sockaddr *>(&m_ffmpeg_addr), sizeof(m_ffmpeg_addr));
 				} else {
 					if (frames_since_last_SPS_request == 8) {
-						if constexpr (DEBUG_LOGGING)
+						if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
 							std::cout << "Requesting sequence parameter set" << std::endl;
 						queue_packet(DronePacket(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS)));
 						frames_since_last_SPS_request = 0;
@@ -182,7 +182,7 @@ void TelloDrone::cmd_receive_thread_routine() {
 		auto packet = DronePacket::deserialize(std::span<u8>(packet_buffer, bytes_received));
 		if (packet.has_value())
 			handle_packet(packet.value());
-		else if constexpr (DEBUG_LOGGING)
+		else if constexpr (DRONE_DEBUG_LOGGING)
 			std::cerr << "Failed to parse packet of length `" << bytes_received << "`" << std::endl;
 	}
 }
@@ -341,7 +341,7 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 			break;
 		}
 		case CommandID::CONN_ACK: {
-			if constexpr (DEBUG_LOGGING)
+			if constexpr (DRONE_DEBUG_LOGGING)
 				std::cout << "Received connection acknowledgement!" << std::endl;
 			break;
 		}
@@ -518,7 +518,7 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 			break;
 		}
 		default:
-			if constexpr (DEBUG_LOGGING)
+			if constexpr (DRONE_DEBUG_LOGGING)
 				std::cerr << "Unhandled packet with cmd_id=" << static_cast<u16>(packet.cmd_id) << std::endl;
 			break;
 	}
