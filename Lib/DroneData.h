@@ -28,6 +28,9 @@ struct DroneInfo {
     std::optional<ActivationData> activation_data;
     std::optional<std::string> unique_identifier;
     std::optional<bool> activation_status;
+    u8 light_strength { 0 };
+    u8 wifi_strength { 0 };
+    u8 wifi_disturb { 0 };
 };
 
 }

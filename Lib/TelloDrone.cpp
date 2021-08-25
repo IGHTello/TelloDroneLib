@@ -542,6 +542,15 @@ void Drone::handle_packet(const DronePacket& packet)
         m_drone_info.activation_status = success;
         break;
     }
+    case CommandID::WIFI_STATE: {
+        m_drone_info.wifi_strength = packet.data[0];
+        m_drone_info.wifi_disturb = packet.data[1];
+        break;
+    }
+    case CommandID::LIGHT_STRENGTH: {
+        m_drone_info.light_strength = packet.data[0];
+        break;
+    }
     default:
         if constexpr (DRONE_DEBUG_LOGGING)
             std::cerr << "Unhandled packet with cmd_id=" << static_cast<u16>(packet.cmd_id) << std::endl;
