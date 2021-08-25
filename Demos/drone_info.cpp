@@ -7,7 +7,6 @@ int main()
     Tello::Drone drone;
     drone.wait_until_connected();
     std::cout << "Connected to the drone! Drone Info:" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // Lets the initialization sequence finish, so we don't send two requests for each
     std::cout << "Firmware Version: " << drone.get_firmware_version() << std::endl;
     std::cout << "Loader Version: " << drone.get_loader_version() << std::endl;
     std::cout << "Bitrate: " << (int)drone.get_bitrate() << std::endl;

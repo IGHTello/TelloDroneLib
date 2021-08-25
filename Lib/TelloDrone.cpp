@@ -337,15 +337,6 @@ void Drone::handle_packet(const DronePacket& packet)
     if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
         std::cout << "Received packet of type " << static_cast<u16>(packet.cmd_id) << std::endl;
 
-    auto add_packet_ack = [&]() {
-        std::unique_lock<std::mutex> lock(m_received_acks_mutex);
-        m_received_acks[packet.seq_num] = true;
-        lock.unlock();
-        if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
-            std::cout << "Received ack for packet " << packet.seq_num << std::endl;
-        m_received_acks_cv.notify_all();
-    };
-
     bool success = !packet.data.empty() && packet.data[0] == 0;
     switch (packet.cmd_id) {
     case CommandID::FLIGHT_DATA: {
@@ -393,10 +384,8 @@ void Drone::handle_packet(const DronePacket& packet)
     case CommandID::FLIP_DRONE:
     case CommandID::THROW_AND_FLY:
     case CommandID::PALM_LAND:
-    case CommandID::SET_LOW_BATTERY_WARNING: {
-        add_packet_ack();
+    case CommandID::SET_LOW_BATTERY_WARNING:
         break;
-    }
     case CommandID::DRONE_LOG_HEADER: {
         assert(packet.data.size() >= 3);
         std::vector<u8> packet_bytes(3);
@@ -561,6 +550,13 @@ void Drone::handle_packet(const DronePacket& packet)
             std::cerr << "Unhandled packet with cmd_id=" << static_cast<u16>(packet.cmd_id) << std::endl;
         break;
     }
+
+    std::unique_lock<std::mutex> lock(m_received_acks_mutex);
+    m_received_acks[packet.seq_num] = true;
+    lock.unlock();
+    if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
+        std::cout << "Received ack for packet " << packet.seq_num << std::endl;
+    m_received_acks_cv.notify_all();
 }
 
 std::string Drone::get_ssid()
