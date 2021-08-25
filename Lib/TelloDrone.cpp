@@ -71,6 +71,7 @@ void TelloDrone::video_receive_thread_routine() {
 	usize current_frame_num = 0;
 	isize last_segment_num_received = -1;
 	bool discard_current_frame = false;
+	bool received_sequence_parameter_set = false;
 	u8 full_frames_received = 0;
 
 	u8 packet_buffer[4096];
@@ -131,16 +132,24 @@ void TelloDrone::video_receive_thread_routine() {
 
 		if (last_segment_in_frame) {
 			if (!discard_current_frame) {
-				sendto(m_ffmpeg_socket_fd, current_frame.data(), current_frame.size(), 0,
-					   reinterpret_cast<const sockaddr *>(&m_ffmpeg_addr), sizeof(m_ffmpeg_addr));
 				if constexpr (DEBUG_LOGGING)
 					std::cout << "Finished receiving full frame" << std::endl;
+
+				if (current_frame[0] == 0x00 && current_frame[1] == 0x00 && current_frame[2] == 0x00 &&
+					current_frame[3] == 0x01) { // NAL Unit Start Code Prefix
+					u8 nal_type = current_frame[4] & 0x1F;
+					if (nal_type == 7)
+						received_sequence_parameter_set = true;
+				}
+				if (received_sequence_parameter_set)
+					sendto(m_ffmpeg_socket_fd, current_frame.data(), current_frame.size(), 0,
+						   reinterpret_cast<const sockaddr *>(&m_ffmpeg_addr), sizeof(m_ffmpeg_addr));
+
 				if (full_frames_received == 8) {
 					queue_packet(DronePacket(DronePacket(96, CommandID::PRODUCE_VIDEO_I_FRAME_MAYBE)));
 					full_frames_received = 0;
 				}
 				full_frames_received++;
-				// FIXME: do something with frame
 			}
 
 			current_frame.clear();
