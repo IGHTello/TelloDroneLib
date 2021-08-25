@@ -18,6 +18,7 @@ static constexpr u16 TELLO_VIDEO_PORT = 7777;
 static constexpr char const* TELLO_CMD_IP = "192.168.10.1";
 static constexpr u16 FFMPEG_PORT = 9999;
 static constexpr char const* FFMPEG_IP = "127.0.0.1";
+static constexpr std::chrono::seconds PACKET_ACK_TIMEOUT = std::chrono::seconds(10);
 
 Drone::Drone()
 {
@@ -287,8 +288,7 @@ bool Drone::is_connected()
 void Drone::wait_until_connected()
 {
     std::unique_lock<std::mutex> lock(m_connected_mutex);
-    while (!m_connected)
-        m_connected_cv.wait(lock);
+    m_connected_cv.wait(lock, [this](){ return m_connected; });
 }
 
 void Drone::shutdown()
@@ -321,14 +321,19 @@ void Drone::queue_packet_internal(DronePacket& packet)
         reinterpret_cast<const sockaddr*>(&m_cmd_addr), sizeof(m_cmd_addr));
 }
 
-void Drone::send_packet_and_wait_until_ack(DronePacket packet)
+bool Drone::send_packet_and_wait_until_ack(DronePacket packet)
 {
     queue_packet_internal(packet);
     if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
         std::cout << "Waiting for ack for packet " << packet.seq_num << " of type " << static_cast<u16>(packet.cmd_id) << std::endl;
     std::unique_lock<std::mutex> lock(m_received_acks_mutex);
-    while (!m_received_acks[packet.seq_num])
-        m_received_acks_cv.wait(lock);
+    return m_received_acks_cv.wait_for(lock, PACKET_ACK_TIMEOUT, [this, seq_num = packet.seq_num]() { return m_received_acks[seq_num]; });
+}
+
+void Drone::send_packet_and_assert_ack(DronePacket packet)
+{
+    auto ack_received = send_packet_and_wait_until_ack(std::move(packet));
+    assert(ack_received);
 }
 
 void Drone::handle_packet(const DronePacket& packet)
@@ -566,81 +571,81 @@ void Drone::handle_packet(const DronePacket& packet)
 std::string Drone::get_ssid()
 {
     if (!m_drone_info.ssid.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_SSID));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_SSID));
     return *m_drone_info.ssid;
 }
 
 std::string Drone::get_firmware_version()
 {
     if (!m_drone_info.firmware_version.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
     return *m_drone_info.firmware_version;
 }
 
 std::string Drone::get_loader_version()
 {
     if (!m_drone_info.loader_version.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_LOADER_VERSION));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_LOADER_VERSION));
     return *m_drone_info.loader_version;
 }
 
 u8 Drone::get_bitrate()
 {
     if (!m_drone_info.bitrate.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_BITRATE));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_BITRATE));
     return *m_drone_info.bitrate;
 }
 
 u16 Drone::get_flight_height_limit()
 {
     if (!m_drone_info.flight_height_limit.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
     return *m_drone_info.flight_height_limit;
 }
 
 u16 Drone::get_low_battery_warning()
 {
     if (!m_drone_info.low_battery_warning.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
     return *m_drone_info.low_battery_warning;
 }
 
 float Drone::get_attitude_angle()
 {
     if (!m_drone_info.attitude_angle.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_ATTITUDE_ANGLE));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_ATTITUDE_ANGLE));
     return *m_drone_info.attitude_angle;
 }
 
 std::string Drone::get_country_code()
 {
     if (!m_drone_info.country_code.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_COUNTRY_CODE));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_COUNTRY_CODE));
     return *m_drone_info.country_code;
 }
 
 std::string Drone::get_unique_identifier()
 {
     if (!m_drone_info.unique_identifier.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_UNIQUE_IDENTIFIER));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_UNIQUE_IDENTIFIER));
     return *m_drone_info.unique_identifier;
 }
 
 bool Drone::get_activation_status()
 {
     if (!m_drone_info.activation_status.has_value()) [[unlikely]]
-        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
+        send_packet_and_assert_ack(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
     return *m_drone_info.activation_status;
 }
 
-void Drone::take_off()
+bool Drone::take_off()
 {
-    send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
 }
 
-void Drone::land()
+bool Drone::land()
 {
-    send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
 }
 
 }

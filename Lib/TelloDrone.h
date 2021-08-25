@@ -43,8 +43,8 @@ public:
     [[nodiscard]] bool get_activation_status();
 
     // Actions
-    void take_off();
-    void land();
+    bool take_off();
+    bool land();
 
 private:
     void send_setup_packet();
@@ -53,7 +53,8 @@ private:
 
     void queue_packet_internal(DronePacket& packet);
     void queue_packet(DronePacket packet) { queue_packet_internal(packet); }
-    void send_packet_and_wait_until_ack(DronePacket packet);
+    bool send_packet_and_wait_until_ack(DronePacket packet);
+    void send_packet_and_assert_ack(DronePacket packet);
 
     void handle_packet(const DronePacket& packet);
 
