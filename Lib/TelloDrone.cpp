@@ -210,6 +210,7 @@ void Drone::send_initialization_sequence()
 {
     queue_packet(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS));
     queue_packet(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
+    queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
     queue_packet(DronePacket(72, CommandID::GET_BITRATE));
     queue_packet(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
     queue_packet(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
@@ -220,9 +221,9 @@ void Drone::send_initialization_sequence()
     queue_packet(DronePacket(72, CommandID::SET_BITRATE, { 0x00 }));
     queue_packet(DronePacket(104, CommandID::SET_RECORDING_MODE, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::GET_SSID));
-    queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
     queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_DATA));
+    queue_packet(DronePacket(72, CommandID::GET_UNIQUE_IDENTIFIER));
     queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
 }
 
