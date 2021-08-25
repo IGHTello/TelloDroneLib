@@ -245,12 +245,12 @@ void Drone::drone_controls_thread_routine()
         send_timed_requests_if_needed();
 
         std::vector<u8> packet_data(11);
-        u64 joystick_unk1 = 1024;
-        u64 joystick_unk2 = 1024;
-        u64 joystick_unk3 = 1024;
-        u64 joystick_unk4 = 1024;
+        u64 roll = 1024;
+        u64 pitch = 1024;
+        u64 throttle = 1024;
+        u64 yaw = 1024;
         u64 flight_speed_quick = 0;
-        u64 packed_drone_controls = (joystick_unk1 & 0x7FF) | ((joystick_unk2 & 0x7FF) << 11) | ((joystick_unk3 & 0x7FF) << 22) | ((joystick_unk4 & 0x7FF) << 33) | (flight_speed_quick << 44);
+        u64 packed_drone_controls = (roll & 0x7FF) | ((pitch & 0x7FF) << 11) | ((throttle & 0x7FF) << 22) | ((yaw & 0x7FF) << 33) | (flight_speed_quick << 44);
         packet_data[0] = packed_drone_controls & 0xFF;
         packet_data[1] = (packed_drone_controls >> 8) & 0xFF;
         packet_data[2] = (packed_drone_controls >> 16) & 0xFF;

@@ -29,12 +29,11 @@ std::vector<u8> DronePacket::serialize()
     packet_bytes[7] = seq_num & 0xFF;
     packet_bytes[8] = seq_num >> 8;
 
-    if (!data.empty()) {
+    if (!data.empty())
         packet_bytes.insert(packet_bytes.begin() + 8, data.cbegin(), data.cend());
-    }
 
-    usize crc_off = 9 + data.size();
-    u16 packet_crc = fast_crc16(packet_bytes);
+    usize crc_off = MINIMUM_PACKET_LENGTH - 2 + data.size();
+    u16 packet_crc = fast_crc16({ packet_bytes.begin(), crc_off });
     packet_bytes[crc_off] = packet_crc & 0xFF;
     packet_bytes[crc_off + 1] = packet_crc >> 8;
 

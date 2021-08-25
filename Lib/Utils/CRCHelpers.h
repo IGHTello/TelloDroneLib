@@ -21,7 +21,7 @@ static u16 fast_crc16(std::span<u8> bytes)
 {
     u16 crc = CRC16_SEED;
     for (u8 byte : bytes) {
-        crc = CRC16_LOOKUP_TABLE[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+        crc = CRC16_LOOKUP_TABLE[(crc ^ (u16)byte) & 0xFF] ^ (crc >> 8);
     }
     return crc;
 }
