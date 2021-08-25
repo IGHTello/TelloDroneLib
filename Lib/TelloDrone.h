@@ -14,7 +14,7 @@
 #include "DroneData.h"
 
 #define DRONE_DEBUG_LOGGING 1
-#define VIDEO_DEBUG_LOGGING 1
+#define VIDEO_DEBUG_LOGGING 0
 #define VERBOSE_VIDEO_DEBUG_LOGGING 0
 
 class TelloDrone {
