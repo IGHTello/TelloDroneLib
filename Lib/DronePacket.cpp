@@ -2,11 +2,14 @@
 #include "Utils/CRCHelpers.h"
 #include <cstring>
 
+namespace Tello {
+
 static constexpr usize MINIMUM_PACKET_LENGTH = 11;
 
-std::vector<u8> DronePacket::serialize() {
+std::vector<u8> DronePacket::serialize()
+{
     std::vector<u8> packet_bytes(MINIMUM_PACKET_LENGTH + data.size());
-    if(cmd_id == CommandID::CONN_REQ) {
+    if (cmd_id == CommandID::CONN_REQ) {
         const char* header = "conn_req:";
         packet_bytes.assign(header, header + 9);
         packet_bytes.push_back(data[0]);
@@ -38,28 +41,29 @@ std::vector<u8> DronePacket::serialize() {
     return packet_bytes;
 }
 
-std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes) {
-    if(packet_bytes.size() < MINIMUM_PACKET_LENGTH)
+std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes)
+{
+    if (packet_bytes.size() < MINIMUM_PACKET_LENGTH)
         return {};
 
-    if(memcmp(packet_bytes.data(), "conn_ack:", 9) == 0) {
+    if (memcmp(packet_bytes.data(), "conn_ack:", 9) == 0) {
         auto packet_data = std::vector<u8>(packet_bytes.begin() + 9, packet_bytes.end());
         return DronePacket(0, 0, CommandID::CONN_ACK, std::move(packet_data));
     }
 
-    if(packet_bytes[0] != 0xCC)
+    if (packet_bytes[0] != 0xCC)
         return {};
 
     u16 packet_length = ((packet_bytes[2] << 8) | packet_bytes[1]) >> 3;
     u16 data_length = packet_length - MINIMUM_PACKET_LENGTH;
-    if(packet_bytes.size() < packet_length || packet_length < MINIMUM_PACKET_LENGTH)
+    if (packet_bytes.size() < packet_length || packet_length < MINIMUM_PACKET_LENGTH)
         return {};
 
-    if(packet_bytes[3] != fast_crc8(std::span<u8>(packet_bytes).subspan(0, 3)))
+    if (packet_bytes[3] != fast_crc8(std::span<u8>(packet_bytes).subspan(0, 3)))
         return {};
 
     u16 packet_checksum = (static_cast<u16>(packet_bytes[packet_length - 1]) << 8) | packet_bytes[packet_length - 2];
-    if(packet_checksum != fast_crc16(std::span<u8>(packet_bytes).subspan(0, packet_length - 2)))
+    if (packet_checksum != fast_crc16(std::span<u8>(packet_bytes).subspan(0, packet_length - 2)))
         return {};
 
     u8 packet_type = packet_bytes[4];
@@ -68,4 +72,6 @@ std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes) 
     std::vector<u8> data(packet_bytes.begin() + 9, packet_bytes.begin() + 9 + data_length);
 
     return DronePacket(seq_num, packet_type, static_cast<CommandID>(cmd_id), std::move(data));
+}
+
 }
