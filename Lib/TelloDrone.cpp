@@ -64,6 +64,8 @@ TelloDrone::TelloDrone() : m_cmd_seq_num(1), m_shutting_down(false) {
 	m_video_receive_thread = std::thread(&TelloDrone::video_receive_thread_routine, this);
 	m_cmd_receive_thread = std::thread(&TelloDrone::cmd_receive_thread_routine, this);
 	m_drone_controls_thread = std::thread(&TelloDrone::drone_controls_thread_routine, this);
+
+	send_setup_packet();
 }
 
 void TelloDrone::video_receive_thread_routine() {
@@ -185,6 +187,13 @@ void TelloDrone::cmd_receive_thread_routine() {
 	}
 }
 
+void TelloDrone::send_setup_packet() {
+	std::vector<u8> packet_bytes(2);
+	packet_bytes[0] = TELLO_VIDEO_PORT & 0xFF;
+	packet_bytes[1] = (TELLO_VIDEO_PORT >> 8) & 0xFF;
+	queue_packet(DronePacket(0, CommandID::CONN_REQ, std::move(packet_bytes)));
+}
+
 void TelloDrone::send_initialization_sequence() {
 	queue_packet(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS));
 	queue_packet(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
@@ -204,24 +213,22 @@ void TelloDrone::send_initialization_sequence() {
 	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
 }
 
-void TelloDrone::send_setup_packet_if_needed() {
-	if (m_connection_request_ticks >= 50 || m_connection_request_ticks == 0) {
-		m_connection_request_ticks = 0;
-
-		std::vector<u8> packet_bytes(2);
-		packet_bytes[0] = TELLO_VIDEO_PORT & 0xFF;
-		packet_bytes[1] = (TELLO_VIDEO_PORT >> 8) & 0xFF;
-		queue_packet(DronePacket(0, CommandID::CONN_REQ, std::move(packet_bytes)));
+void TelloDrone::send_timed_requests_if_needed() {
+	if (m_timed_request_ticks >= 50 || m_timed_request_ticks == 0) {
+		m_timed_request_ticks = 0;
+		if (m_connected)
+			queue_packet(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS));
+		else
+			send_setup_packet();
 	}
-	m_connection_request_ticks++;
+	m_timed_request_ticks++;
 }
 
 void TelloDrone::drone_controls_thread_routine() {
 	while (!m_shutting_down) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-		if (!m_connected)
-			send_setup_packet_if_needed();
+		send_timed_requests_if_needed();
 
 		std::vector<u8> packet_data(11);
 		u64 joystick_unk1 = 1024;

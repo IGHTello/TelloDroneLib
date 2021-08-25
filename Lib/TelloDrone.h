@@ -26,8 +26,9 @@ public:
     void wait_until_connected();
 
 private:
+	void send_setup_packet();
 	void send_initialization_sequence();
-	void send_setup_packet_if_needed();
+	void send_timed_requests_if_needed();
 
     void queue_packet(DronePacket packet);
     void send_packet_and_wait_until_ack(const DronePacket& packet);
@@ -60,7 +61,7 @@ private:
 	bool m_connected { false };
 	std::mutex m_connected_mutex;
 	std::condition_variable m_connected_cv;
-	u8 m_connection_request_ticks { 0 };
+	u8 m_timed_request_ticks {0 };
 
 	bool m_shutting_down { false };
 };
