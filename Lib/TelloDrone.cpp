@@ -214,7 +214,7 @@ void TelloDrone::send_initialization_sequence() {
 }
 
 void TelloDrone::send_timed_requests_if_needed() {
-	if (m_timed_request_ticks >= 50 || m_timed_request_ticks == 0) {
+	if (m_timed_request_ticks >= 50) {
 		m_timed_request_ticks = 0;
 		if (m_connected)
 			queue_packet(DronePacket(96, CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS));
