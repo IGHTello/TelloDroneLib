@@ -64,7 +64,7 @@ private:
     int m_cmd_socket_fd;
     sockaddr_in m_cmd_addr {};
 
-    std::atomic<u16> m_cmd_seq_num;
+    std::atomic<u16> m_cmd_seq_num { 1 };
     std::bitset<65536> m_received_acks;
     std::mutex m_received_acks_mutex;
     std::condition_variable m_received_acks_cv;
