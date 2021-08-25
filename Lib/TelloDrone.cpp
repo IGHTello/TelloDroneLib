@@ -208,7 +208,7 @@ void TelloDrone::send_initialization_sequence() {
 	queue_packet(DronePacket(104, CommandID::SET_RECORDING_MODE, {0x00}));
 	queue_packet(DronePacket(72, CommandID::GET_SSID));
 	queue_packet(DronePacket(72, CommandID::GET_LOADER_VERSION));
-	queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, {0x01}));
+	queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, {0x00}));
 	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_DATA));
 	queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
 }
@@ -329,10 +329,12 @@ void TelloDrone::handle_packet(const DronePacket &packet) {
 				m_connected = false;
 			} else {
 				std::unique_lock<std::mutex> lock(m_connected_mutex);
+				bool was_connected = m_connected;
 				m_connected = true;
 				lock.unlock();
 
-				send_initialization_sequence();
+				if (!was_connected)
+					send_initialization_sequence();
 
 				m_connected_cv.notify_all();
 			}
