@@ -334,10 +334,15 @@ void Drone::handle_packet(const DronePacket& packet)
 {
     assert(packet.direction == PacketDirection::FROM_DRONE);
 
+    if constexpr (VERBOSE_VIDEO_DEBUG_LOGGING)
+        std::cout << "Received packet of type " << static_cast<u16>(packet.cmd_id) << std::endl;
+
     auto add_packet_ack = [&]() {
         std::unique_lock<std::mutex> lock(m_received_acks_mutex);
         m_received_acks[packet.seq_num] = true;
         lock.unlock();
+        if constexpr (VERBOSE_DRONE_DEBUG_LOGGING)
+            std::cout << "Received ack for packet " << packet.seq_num << std::endl;
         m_received_acks_cv.notify_all();
     };
 
