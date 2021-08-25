@@ -1,5 +1,4 @@
 #include <TelloDrone.h>
-#include <Utils/StringHelpers.h>
 #include <iostream>
 
 int main()
@@ -14,7 +13,7 @@ int main()
     std::cout << "Low Battery Warning: " << drone.get_low_battery_warning() << std::endl;
     std::cout << "Attitude Angle: " << drone.get_attitude_angle() << std::endl;
     std::cout << "Country Code: " << drone.get_country_code() << std::endl;
-    std::cout << "SSID: " << trim_copy(drone.get_ssid()) << std::endl;
+    std::cout << "SSID: " << drone.get_ssid() << std::endl;
     std::cout << "Activation Status: " << drone.get_activation_status() << std::endl;
     std::cout << "Disconnecting..." << std::endl;
 }

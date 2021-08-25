@@ -4,7 +4,9 @@
 
 namespace Tello {
 
+static constexpr u8 PACKET_MAGIC = 0xCC;
 static constexpr usize MINIMUM_PACKET_LENGTH = 11;
+static constexpr usize PACKET_FOOTER_LENGTH = 2;
 
 std::vector<u8> DronePacket::serialize()
 {
@@ -17,8 +19,7 @@ std::vector<u8> DronePacket::serialize()
         return packet_bytes;
     }
 
-    packet_bytes.resize(MINIMUM_PACKET_LENGTH + data.size());
-    packet_bytes[0] = 0xCC;
+    packet_bytes[0] = PACKET_MAGIC;
     u16 packet_length = (MINIMUM_PACKET_LENGTH + data.size()) << 3;
     packet_bytes[1] = packet_length & 0xFF;
     packet_bytes[2] = packet_length >> 8;
@@ -30,9 +31,9 @@ std::vector<u8> DronePacket::serialize()
     packet_bytes[8] = seq_num >> 8;
 
     if (!data.empty())
-        packet_bytes.insert(packet_bytes.begin() + 8, data.cbegin(), data.cend());
+        std::copy(data.cbegin(), data.cend(), &packet_bytes[9]);
 
-    usize crc_off = MINIMUM_PACKET_LENGTH - 2 + data.size();
+    usize crc_off = MINIMUM_PACKET_LENGTH - PACKET_FOOTER_LENGTH + data.size();
     u16 packet_crc = fast_crc16({ packet_bytes.begin(), crc_off });
     packet_bytes[crc_off] = packet_crc & 0xFF;
     packet_bytes[crc_off + 1] = packet_crc >> 8;
@@ -50,7 +51,7 @@ std::optional<DronePacket> DronePacket::deserialize(std::span<u8> packet_bytes)
         return DronePacket(0, 0, CommandID::CONN_ACK, std::move(packet_data));
     }
 
-    if (packet_bytes[0] != 0xCC)
+    if (packet_bytes[0] != PACKET_MAGIC)
         return {};
 
     u16 packet_length = ((packet_bytes[2] << 8) | packet_bytes[1]) >> 3;

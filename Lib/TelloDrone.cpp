@@ -1,4 +1,5 @@
 #include "TelloDrone.h"
+#include "Utils/StringHelpers.h"
 #include <cassert>
 #include <chrono>
 #include <cstdio>
@@ -442,7 +443,9 @@ void Drone::handle_packet(const DronePacket& packet)
     case CommandID::GET_SSID: {
         if (success) {
             assert(packet.data.size() >= 2);
-            m_drone_info.ssid = std::string(packet.data.begin() + 1, packet.data.end());
+            auto raw_ssid = std::string(packet.data.begin() + 1, packet.data.end());
+            trim(raw_ssid);
+            m_drone_info.ssid = std::move(raw_ssid);
         } else {
             std::cerr << "GET_SSID failed" << std::endl;
         }
