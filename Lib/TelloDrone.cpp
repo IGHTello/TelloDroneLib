@@ -297,8 +297,8 @@ void Drone::shutdown()
     if (m_shutting_down)
         return;
 
-    queue_packet(DronePacket(104, CommandID::LAND_DRONE, {0x00}));
-    queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
+    queue_packet(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
+    // queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 
     m_shutting_down = true;
     m_video_receive_thread.join();
@@ -549,54 +549,74 @@ void Drone::handle_packet(const DronePacket& packet)
     }
 }
 
-std::string Drone::get_ssid() const
+std::string Drone::get_ssid()
 {
-    return m_drone_info.ssid;
+    if (!m_drone_info.ssid.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_SSID));
+    return *m_drone_info.ssid;
 }
 
-std::string Drone::get_firmware_version() const
+std::string Drone::get_firmware_version()
 {
-    return m_drone_info.firmware_version;
+    if (!m_drone_info.firmware_version.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_FIRMWARE_VERSION));
+    return *m_drone_info.firmware_version;
 }
 
-std::string Drone::get_loader_version() const
+std::string Drone::get_loader_version()
 {
-    return m_drone_info.loader_version;
+    if (!m_drone_info.loader_version.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_LOADER_VERSION));
+    return *m_drone_info.loader_version;
 }
 
-u8 Drone::get_bitrate() const
+u8 Drone::get_bitrate()
 {
-    return m_drone_info.bitrate;
+    if (!m_drone_info.bitrate.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_BITRATE));
+    return *m_drone_info.bitrate;
 }
 
-u16 Drone::get_flight_height_limit() const
+u16 Drone::get_flight_height_limit()
 {
-    return m_drone_info.flight_height_limit;
+    if (!m_drone_info.flight_height_limit.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_FLIGHT_HEIGHT_LIMIT));
+    return *m_drone_info.flight_height_limit;
 }
 
-u16 Drone::get_low_battery_warning() const
+u16 Drone::get_low_battery_warning()
 {
-    return m_drone_info.low_battery_warning;
+    if (!m_drone_info.low_battery_warning.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_LOW_BATTERY_WARNING));
+    return *m_drone_info.low_battery_warning;
 }
 
-float Drone::get_attitude_angle() const
+float Drone::get_attitude_angle()
 {
-    return m_drone_info.attitude_angle;
+    if (!m_drone_info.attitude_angle.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_ATTITUDE_ANGLE));
+    return *m_drone_info.attitude_angle;
 }
 
-std::string Drone::get_country_code() const
+std::string Drone::get_country_code()
 {
-    return m_drone_info.country_code;
+    if (!m_drone_info.country_code.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_COUNTRY_CODE));
+    return *m_drone_info.country_code;
 }
 
-std::string Drone::get_unique_identifier() const
+std::string Drone::get_unique_identifier()
 {
-    return m_drone_info.unique_identifier;
+    if (!m_drone_info.unique_identifier.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_UNIQUE_IDENTIFIER));
+    return *m_drone_info.unique_identifier;
 }
 
-bool Drone::get_activation_status() const
+bool Drone::get_activation_status()
 {
-    return m_drone_info.activation_status;
+    if (!m_drone_info.activation_status.has_value()) [[unlikely]]
+        send_packet_and_wait_until_ack(DronePacket(72, CommandID::GET_ACTIVATION_STATUS));
+    return *m_drone_info.activation_status;
 }
 
 void Drone::take_off()

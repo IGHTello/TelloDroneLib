@@ -30,16 +30,16 @@ public:
     void wait_until_connected();
 
     // Drone Info getters
-    [[nodiscard]] std::string get_ssid() const;
-    [[nodiscard]] std::string get_firmware_version() const;
-    [[nodiscard]] std::string get_loader_version() const;
-    [[nodiscard]] u8 get_bitrate() const;
-    [[nodiscard]] u16 get_flight_height_limit() const;
-    [[nodiscard]] u16 get_low_battery_warning() const;
-    [[nodiscard]] float get_attitude_angle() const;
-    [[nodiscard]] std::string get_country_code() const;
-    [[nodiscard]] std::string get_unique_identifier() const;
-    [[nodiscard]] bool get_activation_status() const;
+    [[nodiscard]] std::string get_ssid();
+    [[nodiscard]] std::string get_firmware_version();
+    [[nodiscard]] std::string get_loader_version();
+    [[nodiscard]] u8 get_bitrate();
+    [[nodiscard]] u16 get_flight_height_limit();
+    [[nodiscard]] u16 get_low_battery_warning();
+    [[nodiscard]] float get_attitude_angle();
+    [[nodiscard]] std::string get_country_code();
+    [[nodiscard]] std::string get_unique_identifier();
+    [[nodiscard]] bool get_activation_status();
 
     // Actions
     void take_off();

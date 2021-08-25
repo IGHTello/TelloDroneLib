@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <string>
+#include <optional>
 #include "Utils/Types.h"
 
 namespace Tello {
@@ -16,17 +17,17 @@ struct ActivationData {
 };
 
 struct DroneInfo {
-    std::string ssid;
-    std::string firmware_version;
-    std::string loader_version;
-    u8 bitrate { 0 };
-    u16 flight_height_limit { 0 };
-    u16 low_battery_warning { 0 };
-    float attitude_angle { 0 };
-    std::string country_code;
-    ActivationData activation_data;
-    std::string unique_identifier;
-    bool activation_status { false };
+    std::optional<std::string> ssid;
+    std::optional<std::string> firmware_version;
+    std::optional<std::string> loader_version;
+    std::optional<u8> bitrate;
+    std::optional<u16> flight_height_limit;
+    std::optional<u16> low_battery_warning;
+    std::optional<float> attitude_angle;
+    std::optional<std::string> country_code;
+    std::optional<ActivationData> activation_data;
+    std::optional<std::string> unique_identifier;
+    std::optional<bool> activation_status;
 };
 
 }
