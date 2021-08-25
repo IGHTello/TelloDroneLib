@@ -292,7 +292,7 @@ void TelloDrone::shutdown() {
 
 void TelloDrone::queue_packet(DronePacket packet) {
 	assert(packet.direction == PacketDirection::TO_DRONE);
-	if (packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS)
+	if (packet.cmd_id == CommandID::REQUEST_VIDEO_SPS_PPS_HEADERS || packet.cmd_id == CommandID::SET_CURRENT_FLIGHT_CONTROLS)
 		packet.seq_num = 0;
 	else
 		packet.seq_num = m_cmd_seq_num++;
