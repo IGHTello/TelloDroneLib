@@ -218,7 +218,7 @@ void Drone::send_initialization_sequence()
     queue_packet(DronePacket(72, CommandID::SET_CAMERA_EV, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::SET_PHOTO_QUALITY, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::SET_BITRATE, { 0x00 }));
-    queue_packet(DronePacket(104, CommandID::SET_RECORDING_MODE, { 0x00 }));
+    queue_packet(DronePacket(104, CommandID::SET_RECORDING, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::GET_SSID));
     queue_packet(DronePacket(72, CommandID::SET_CAMERA_MODE, { 0x00 }));
     queue_packet(DronePacket(72, CommandID::GET_ACTIVATION_DATA));
@@ -378,7 +378,7 @@ void Drone::handle_packet(const DronePacket& packet)
     case CommandID::SET_BITRATE:
     case CommandID::SET_EIS:
     case CommandID::SET_AUTOMATIC_BITRATE:
-    case CommandID::SET_RECORDING_MODE:
+    case CommandID::SET_RECORDING:
     case CommandID::SET_CAMERA_EV:
     case CommandID::SET_PHOTO_QUALITY:
     case CommandID::SET_CAMERA_MODE:

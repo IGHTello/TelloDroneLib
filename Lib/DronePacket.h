@@ -28,7 +28,7 @@ enum struct CommandID : u16 {
     GET_BITRATE = 40,
     TAKE_A_PICTURE = 48,
     SET_CAMERA_MODE = 49,
-    SET_RECORDING_MODE = 50,
+    SET_RECORDING = 50,
     SET_CAMERA_EV = 52, // Exposure Value [-9, 9]
     LIGHT_STRENGTH = 53,
     SET_PHOTO_QUALITY = 55,
