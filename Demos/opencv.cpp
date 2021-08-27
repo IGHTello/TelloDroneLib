@@ -3,6 +3,8 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/highgui.hpp>
 
+// Will only be built if opencv is installed
+
 int main()
 {
     Tello::Drone drone;
@@ -27,7 +29,7 @@ int main()
         }
 
         cv::imshow("Live Feed", frame);
-        if(cv::waitKey(0) >= 0)
+        if(cv::waitKey(1) >= 0)
             break;
     }
 
