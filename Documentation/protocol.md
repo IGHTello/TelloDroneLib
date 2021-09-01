@@ -115,7 +115,7 @@ struct drone_packet {
   struct flight_controls {
     u8 packed_controls[6]; // UUU|Q|DDDDDDDDDDD|CCCCCCCCCCC|BBBBBBBBBBB|AAAAAAAAAAA
                            // U is unused, Q is a Quick Flight Speed bit, and A, B, C, and D are four
-                           // axes of motion, whose range is [0, 2047] such that 1024 is no motion
+                           // axes of motion, whose range is [364, 1684] such that 1024 is no motion
                            // TODO: Which axis is which
     u8 hour;
     u8 minute;
