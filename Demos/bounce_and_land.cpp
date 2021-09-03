@@ -12,16 +12,16 @@ int main()
         return 1;
     }
     std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay to let previous command finish
-    std::cout << "Starting the circle maneuver..." << std::endl;
-    if (!drone.start_smart_video(Tello::SmartVideoAction::Circle)) {
-        std::cerr << "Failed starting the circle maneuver! Disconnecting..." << std::endl;
+    std::cout << "Starting bounce mode..." << std::endl;
+    if (!drone.start_bouncing()) {
+        std::cerr << "Failed starting bounce mode! Disconnecting..." << std::endl;
         return 1;
     }
     std::cout << "Waiting 5 seconds..." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(5));
-    std::cout << "Stopping the circle maneuver..." << std::endl;
-    if (!drone.stop_smart_video(Tello::SmartVideoAction::Circle)) {
-        std::cerr << "Failed stopping the circle maneuver! Disconnecting..." << std::endl;
+    std::cout << "Stopping bounce mode..." << std::endl;
+    if (!drone.stop_bouncing()) {
+        std::cerr << "Failed stopping bounce mode! Disconnecting..." << std::endl;
         return 1;
     }
     std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay to let previous command finish

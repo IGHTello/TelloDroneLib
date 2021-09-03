@@ -11,16 +11,19 @@ int main()
         std::cerr << "Failed taking off! Disconnecting..." << std::endl;
         return 1;
     }
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay to let previous command finish
     std::cout << "Flipping forwards..." << std::endl;
     if (!drone.flip(Tello::FlipDirection::Forward)) {
         std::cerr << "Failed flipping forwards! Disconnecting..." << std::endl;
         return 1;
     }
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay to let previous command finish
     std::cout << "Flipping backwards..." << std::endl;
     if (!drone.flip(Tello::FlipDirection::Backward)) {
         std::cerr << "Failed flipping forwards! Disconnecting..." << std::endl;
         return 1;
     }
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // Delay to let previous command finish
     std::cout << "Landing..." << std::endl;
     if (!drone.land()) {
         std::cerr << "Failed landing! Disconnecting..." << std::endl;
