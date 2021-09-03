@@ -361,7 +361,7 @@ void Drone::handle_packet(const DronePacket& packet)
             m_connected_cv.notify_all();
         }
         m_last_update_time = current_time;
-        // TODO: READ FLIGHT DATA
+        decode_flight_data(packet.data);
         break;
     }
     case CommandID::CONN_ACK: {
@@ -566,6 +566,52 @@ void Drone::handle_packet(const DronePacket& packet)
     m_received_acks_cv.notify_all();
 }
 
+void Drone::decode_flight_data(const std::vector<u8>& data)
+{
+    assert(data.size() >= 18);
+    m_flight_data.height = static_cast<i16>((i16)data[0] | ((i16)data[1] << 8));
+    m_flight_data.north_speed = static_cast<i16>((i16)data[2] | ((i16)data[3] << 8));
+    m_flight_data.east_speed = static_cast<i16>((i16)data[4] | ((i16)data[5] << 8));
+    m_flight_data.ground_speed = static_cast<i16>((i16)data[6] | ((i16)data[7] << 8));
+    m_flight_data.flight_time = static_cast<i16>((i16)data[8] | ((i16)data[9] << 8));
+    m_flight_data.imu_state = data[10] & 1;
+    m_flight_data.pressure_state = (data[10] >> 1) & 1;
+    m_flight_data.down_visual_state = (data[10] >> 2) & 1;
+    m_flight_data.power_state = (data[10] >> 3) & 1;
+    m_flight_data.battery_state = (data[10] >> 4) & 1;
+    m_flight_data.gravity_state = (data[10] >> 5) & 1;
+    m_flight_data.down_visual_state = (data[10] >> 7) & 1;
+    if (data.size() < 19)
+        return;
+    assert(data.size() >= 21);
+    m_flight_data.imu_calibration_state = static_cast<i8>(data[11]);
+    m_flight_data.battery_percentage = static_cast<i8>(data[12]);
+    m_flight_data.flight_time_left = static_cast<i16>((i16)data[13] | ((i16)data[14] << 8));
+    m_flight_data.battery_left = static_cast<i16>((i16)data[15] | ((i16)data[16] << 8));
+    m_flight_data.eMSky = data[17] & 1;
+    m_flight_data.eMGround = (data[17] >> 1) & 1;
+    m_flight_data.eMOpen = (data[17] >> 2) & 1;
+    m_flight_data.drone_hover = (data[17] >> 3) & 1;
+    m_flight_data.outage_recording = (data[17] >> 4) & 1;
+    m_flight_data.battery_low = (data[17] >> 5) & 1;
+    m_flight_data.batery_lower = (data[17] >> 6) & 1;
+    m_flight_data.factory_mode = (data[17] >> 7) & 1;
+    m_flight_data.flight_mode = data[18];
+    m_flight_data.throw_fly_timer = data[19];
+    m_flight_data.camera_state = data[20];
+    if (data.size() < 22)
+        return;
+    m_flight_data.electrical_machinery_state = data[21];
+    if (data.size() < 23)
+        return;
+    m_flight_data.front_in = data[22] & 1;
+    m_flight_data.front_out = (data[22] >> 1) & 1;
+    m_flight_data.front_LSC = (data[22] >> 2) & 1;
+    m_flight_data.center_gravity_calibration_status = (data[22] >> 3) & 3;
+    m_flight_data.soaring_up_into_the_sky = (data[22] >> 5) & 1;
+    m_flight_data.temperature_height = (data[22] >> 7) & 1;
+}
+
 std::string Drone::get_ssid()
 {
     if (!m_drone_info.ssid.has_value()) [[unlikely]]
@@ -636,6 +682,11 @@ bool Drone::get_activation_status()
     return *m_drone_info.activation_status;
 }
 
+const FlightData& Drone::get_flight_data()
+{
+    return m_flight_data;
+}
+
 void Drone::set_flight_height_limit(u16 flight_height_limit)
 {
     send_packet_and_assert_ack(DronePacket(72, CommandID::SET_FLIGHT_HEIGHT_LIMIT, { static_cast<u8>(flight_height_limit & 0xFF), static_cast<u8>(flight_height_limit >> 8) }));
@@ -656,7 +707,8 @@ void Drone::shutdown()
     queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 }
 
-static inline u16 float_to_tello(float value) {
+static inline u16 float_to_tello(float value)
+{
     assert(value <= 1 && value >= -1);
     return 1024 + (u16)(value * 660);
 }

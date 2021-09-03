@@ -128,25 +128,25 @@ struct drone_packet {
 * 86 - Drone Info: Flight Data. Sent from the drone periodically, has three forms, depending on the packet size:
   ```c
   struct flight_data {
-    u16 height;
-    u16 north_speed;
-    u16 east_speed;
-    u16 ground_speed;
-    u16 flight_time;
+    i16 height; // in decimeters (meters * 10)
+    i16 north_speed; // in decimeters/second (meters/second * 10)
+    i16 east_speed; // in decimeters/second (meters/second * 10)
+    i16 ground_speed;
+    i16 flight_time;
     u1 imu_state;
     u1 pressure_state;
     u1 down_visual_state;
     u1 power_state;
     u1 battery_state;
     u1 gravity_state;
-    u1 wind_state;
     u1 unused_or_unknown;
+    u1 wind_state;
     
     // Next fields exist if packet size >= 19
-    u8 imu_calibration_state;
-    u8 battery_percentage;
-    u16 flight_time_left;
-    u16 battery_left;
+    i8 imu_calibration_state;
+    i8 battery_percentage;
+    i16 flight_time_left;
+    i16 battery_left;
     u1 eMSky;
     u1 eMGround;
     u1 eMOpen;

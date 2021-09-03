@@ -39,6 +39,7 @@ public:
     [[nodiscard]] std::string get_country_code();
     [[nodiscard]] std::string get_unique_identifier();
     [[nodiscard]] bool get_activation_status();
+    [[nodiscard]] const FlightData& get_flight_data();
 
     // Drone info setters
     void set_flight_height_limit(u16);
@@ -63,6 +64,8 @@ private:
 
     void handle_packet(const DronePacket& packet);
 
+    void decode_flight_data(const std::vector<u8>& data);
+
     void drone_controls_thread_routine();
     void cmd_receive_thread_routine();
     void video_receive_thread_routine();
@@ -83,7 +86,9 @@ private:
 
     std::thread m_drone_controls_thread;
 
+    // These may need locking...
     DroneInfo m_drone_info;
+    FlightData m_flight_data;
 
     std::chrono::system_clock::time_point m_last_update_time;
     bool m_connected { false };

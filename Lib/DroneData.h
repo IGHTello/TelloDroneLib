@@ -33,4 +33,41 @@ struct DroneInfo {
     u8 wifi_disturb { 0 };
 };
 
+struct FlightData {
+    i16 height;
+    i16 north_speed;
+    i16 east_speed;
+    i16 ground_speed;
+    i16 flight_time;
+    bool imu_state;
+    bool pressure_state;
+    bool down_visual_state;
+    bool power_state;
+    bool battery_state;
+    bool gravity_state;
+    bool wind_state;
+    i8 imu_calibration_state;
+    i8 battery_percentage;
+    i16 flight_time_left;
+    i16 battery_left;
+    bool eMSky; // flying?
+    bool eMGround; // on ground?
+    bool eMOpen;
+    bool drone_hover;
+    bool outage_recording;
+    bool battery_low;
+    bool batery_lower;
+    bool factory_mode;
+    u8 flight_mode;
+    u8 throw_fly_timer;
+    u8 camera_state;
+    u8 electrical_machinery_state;
+    bool front_in;
+    bool front_out;
+    bool front_LSC;
+    u8 center_gravity_calibration_status;
+    bool soaring_up_into_the_sky;
+    bool temperature_height;
+};
+
 }
