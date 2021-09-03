@@ -391,6 +391,7 @@ void Drone::handle_packet(const DronePacket& packet)
     case CommandID::PALM_LAND:
     case CommandID::SET_LOW_BATTERY_WARNING:
     case CommandID::DRONE_LOG_DATA:
+    case CommandID::SET_FLIGHT_HEIGHT_LIMIT:
         break;
     case CommandID::DRONE_LOG_HEADER: {
         assert(packet.data.size() >= 3);
