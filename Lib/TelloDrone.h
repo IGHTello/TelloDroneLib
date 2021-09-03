@@ -47,6 +47,7 @@ public:
     bool take_off();
     bool land();
     void shutdown();
+    void set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y);
 
 private:
     void close();

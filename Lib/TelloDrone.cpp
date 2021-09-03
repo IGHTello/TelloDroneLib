@@ -656,4 +656,17 @@ void Drone::shutdown()
     queue_packet(DronePacket(80, CommandID::SHUTDOWN_DRONE, { 0, 0 }));
 }
 
+static inline u16 float_to_tello(float value) {
+    assert(value <= 1 && value >= -1);
+    return 1024 + (u16)(value * 660);
+}
+
+void Drone::set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y)
+{
+    m_right_stick_x = float_to_tello(right_stick_x);
+    m_right_stick_y = float_to_tello(right_stick_y);
+    m_left_stick_x = float_to_tello(left_stick_x);
+    m_left_stick_y = float_to_tello(left_stick_y);
+}
+
 }
