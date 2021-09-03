@@ -692,14 +692,60 @@ void Drone::set_flight_height_limit(u16 flight_height_limit)
     send_packet_and_assert_ack(DronePacket(72, CommandID::SET_FLIGHT_HEIGHT_LIMIT, { static_cast<u8>(flight_height_limit & 0xFF), static_cast<u8>(flight_height_limit >> 8) }));
 }
 
+void Drone::set_low_battery_warning(u16 low_battery_warning)
+{
+    send_packet_and_assert_ack(DronePacket(104, CommandID::SET_LOW_BATTERY_WARNING, { static_cast<u8>(low_battery_warning & 0xFF), static_cast<u8>(low_battery_warning >> 8) }));
+}
+
 bool Drone::take_off()
 {
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
 }
 
+bool Drone::throw_take_off()
+{
+    return send_packet_and_wait_until_ack(DronePacket(72, CommandID::THROW_AND_FLY));
+}
+
 bool Drone::land()
 {
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
+}
+
+bool Drone::palm_land()
+{
+    return send_packet_and_wait_until_ack(DronePacket(72, CommandID::PALM_LAND, { 0x00 }));
+}
+
+bool Drone::cancel_landing()
+{
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x01 }));
+}
+
+bool Drone::start_bouncing()
+{
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::SET_BOUNCE_MODE, { 0x30 }));
+}
+
+bool Drone::stop_bouncing()
+{
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::SET_BOUNCE_MODE, { 0x31 }));
+}
+
+bool Drone::flip(FlipDirection direction)
+{
+    return send_packet_and_wait_until_ack(DronePacket(112, CommandID::FLIP_DRONE, { static_cast<u8>(direction) }));
+}
+
+bool Drone::start_smart_video(SmartVideoAction smart_video_action)
+{
+    u8 payload = static_cast<u8>(smart_video_action) | 0x1;
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::SET_SMART_VIDEO_MODE, { payload }));
+}
+
+bool Drone::stop_smart_video(SmartVideoAction smart_video_action)
+{
+    return send_packet_and_wait_until_ack(DronePacket(104, CommandID::SET_SMART_VIDEO_MODE, { static_cast<u8>(smart_video_action) }));
 }
 
 void Drone::shutdown()
@@ -719,6 +765,14 @@ void Drone::set_joysticks_state(float right_stick_x, float right_stick_y, float 
     m_right_stick_y = float_to_tello(right_stick_y);
     m_left_stick_x = float_to_tello(left_stick_x);
     m_left_stick_y = float_to_tello(left_stick_y);
+}
+
+void Drone::hover()
+{
+    m_right_stick_x = 1024;
+    m_right_stick_y = 1024;
+    m_left_stick_x = 1024;
+    m_left_stick_y = 1024;
 }
 
 }

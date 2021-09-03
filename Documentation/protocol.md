@@ -124,7 +124,7 @@ struct drone_packet {
   }
   ```
 * 84 - Command: Take Off[§](#-standard-response)
-* 85 - Command: Land Drone[§](#-standard-response). Has one byte of command data which is some kind of flag (TODO meaning, something to do with auto landing?)
+* 85 - Command: Land Drone[§](#-standard-response). Has one byte of command data which is 0 for landing and 1 for canceling an existing landing request.
 * 86 - Drone Info: Flight Data. Sent from the drone periodically, has three forms, depending on the packet size:
   ```c
   struct flight_data {
@@ -178,9 +178,11 @@ struct drone_packet {
 * 92 - Command: Flip Drone[§](#-standard-response). Has one byte of command data, which is the flip direction, range [0, 7] (TODO meaning of values)
 * 93 - Command: Throw and Fly[§](#-standard-response)
 * 94 - Command: Palm Land[§](#-standard-response)
+* 128 - Command: Set Smart Video mode[§](#-standard-response). Has one byte of command data, with the bottom bit being 1 for start and 0 for stop, and the next 2 bits being one of: Rotate 360 - 1, Circle - 2, Up & Away - 3)
 * 4176 - Drone Info: Drone Log Header[*](#-drone-log)
 * 4177 - Drone Info: Drone Log Data[*](#-drone-log)
 * 4178 - Drone Info: Drone Log Configuration[*](#-drone-log)
+* 4179 - Command: Set bouncing mode[§](#-standard-response). Has one byte of command data, which is 48 for enabling bouncing and 49 for disabling bouncing
 * 4181 - Command: Set Low Battery Warning[§](#-standard-response). Packet data is two bytes encoding LE low battery warning level
 * 4182 - Command: Get Flight Height Limit. First byte of response data is a success flag (see [§](#-standard-response)) and then two bytes encoding LE flight height limit
 * 4183 - Command: Get Low Battery Warning. First byte of response data is a success flag (see [§](#-standard-response)) and then two bytes encoding LE low battery warning level

@@ -13,7 +13,7 @@ enum class PacketDirection {
     FROM_DRONE
 };
 
-enum struct CommandID : u16 {
+enum class CommandID : u16 {
     GET_SSID = 17,
     SET_SSID = 18,
     GET_WIFI_PASSWORD = 19,
@@ -47,12 +47,14 @@ enum struct CommandID : u16 {
     LAND_DRONE = 85,
     FLIGHT_DATA = 86,
     SET_FLIGHT_HEIGHT_LIMIT = 88,
-    FLIP_DRONE = 92, // TODO: TestActivity expects payload in response?!
+    FLIP_DRONE = 92,
     THROW_AND_FLY = 93,
     PALM_LAND = 94,
+    SET_SMART_VIDEO_MODE = 128,
     DRONE_LOG_HEADER = 4176,
     DRONE_LOG_DATA = 4177,
     DRONE_LOG_CONFIGURATION = 4178,
+    SET_BOUNCE_MODE = 4179,
     SET_LOW_BATTERY_WARNING = 4181,
     GET_FLIGHT_HEIGHT_LIMIT = 4182,
     GET_LOW_BATTERY_WARNING = 4183,
@@ -60,6 +62,23 @@ enum struct CommandID : u16 {
     GET_ATTITUDE_ANGLE = 4185,
     CONN_REQ = 0xFFFE, // These are not real command IDs, they are used to represent the non-standard
     CONN_ACK = 0xFFFF, // packets at the start of the drone-app communication
+};
+
+enum class FlipDirection : u8 {
+    Forward = 0,
+    Left,
+    Backward,
+    Right,
+    ForwardLeft,
+    BackwardLeft,
+    BackwardRight,
+    ForwardRight,
+};
+
+enum class SmartVideoAction: u8 {
+    Rotate360 = 1 << 2,
+    Circle = 2 << 2,
+    UpAndAway = 3 << 2,
 };
 
 struct DronePacket {

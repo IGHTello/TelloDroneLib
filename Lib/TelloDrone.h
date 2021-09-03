@@ -28,7 +28,7 @@ public:
     [[nodiscard]] bool is_connected();
     void wait_until_connected();
 
-    // Drone Info getters
+    // Drone Info getters - BLOCKING
     [[nodiscard]] std::string get_ssid();
     [[nodiscard]] std::string get_firmware_version();
     [[nodiscard]] std::string get_loader_version();
@@ -39,16 +39,30 @@ public:
     [[nodiscard]] std::string get_country_code();
     [[nodiscard]] std::string get_unique_identifier();
     [[nodiscard]] bool get_activation_status();
+
+    // Drone info getters - NON-BLOCKING
     [[nodiscard]] const FlightData& get_flight_data();
 
-    // Drone info setters
+    // Drone info setters - BLOCKING
     void set_flight_height_limit(u16);
+    void set_low_battery_warning(u16);
 
-    // Actions
+    // Actions - BLOCKING
     bool take_off();
+    bool throw_take_off();
     bool land();
+    bool palm_land();
+    bool cancel_landing();
+    bool start_bouncing();
+    bool stop_bouncing();
+    bool flip(FlipDirection);
+    bool start_smart_video(SmartVideoAction);
+    bool stop_smart_video(SmartVideoAction);
+
+    // Actions - NON-BLOCKING
     void shutdown();
     void set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y);
+    void hover();
 
 private:
     void close();
