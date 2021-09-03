@@ -312,6 +312,7 @@ void Drone::queue_packet_internal(DronePacket& packet)
         packet.seq_num = 0;
     } else {
         packet.seq_num = m_cmd_seq_num++;
+        std::unique_lock<std::mutex> lock(m_received_acks_mutex);
         m_received_acks[packet.seq_num] = false;
     }
     auto packet_bytes = packet.serialize();
