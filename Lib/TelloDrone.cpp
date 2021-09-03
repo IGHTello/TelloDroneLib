@@ -246,12 +246,10 @@ void Drone::drone_controls_thread_routine()
         send_timed_requests_if_needed();
 
         std::vector<u8> packet_data(11);
-        u64 roll = 1024;
-        u64 pitch = 1024;
-        u64 throttle = 1024;
-        u64 yaw = 1024;
-        u64 flight_speed_quick = 0;
-        u64 packed_drone_controls = (roll & 0x7FF) | ((pitch & 0x7FF) << 11) | ((throttle & 0x7FF) << 22) | ((yaw & 0x7FF) << 33) | (flight_speed_quick << 44);
+
+        std::unique_lock<std::mutex> lock(m_received_acks_mutex);
+        u64 packed_drone_controls = ((u64)m_right_stick_x & 0x7FF) | (((u64)m_right_stick_y & 0x7FF) << 11) | (((u64)m_left_stick_y & 0x7FF) << 22) | (((u64)m_left_stick_x & 0x7FF) << 33) | ((u64)m_quick_mode << 44);
+        lock.unlock();
         packet_data[0] = packed_drone_controls & 0xFF;
         packet_data[1] = (packed_drone_controls >> 8) & 0xFF;
         packet_data[2] = (packed_drone_controls >> 16) & 0xFF;

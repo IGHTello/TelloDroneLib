@@ -90,6 +90,13 @@ private:
     std::condition_variable m_connected_cv;
     u8 m_timed_request_ticks { 0 };
 
+    std::mutex m_controls_mutex;
+    u16 m_right_stick_x { 1024 };
+    u16 m_right_stick_y { 1024 };
+    u16 m_left_stick_x { 1024 };
+    u16 m_left_stick_y { 1024 };
+    bool m_quick_mode { false };
+
     bool m_shutting_down { false };
 };
 
