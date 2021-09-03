@@ -764,6 +764,7 @@ static inline u16 float_to_tello(float value)
 
 void Drone::set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y)
 {
+    std::unique_lock<std::mutex> lock(m_controls_mutex);
     m_right_stick_x = float_to_tello(right_stick_x);
     m_right_stick_y = float_to_tello(right_stick_y);
     m_left_stick_x = float_to_tello(left_stick_x);
@@ -772,10 +773,59 @@ void Drone::set_joysticks_state(float right_stick_x, float right_stick_y, float 
 
 void Drone::hover()
 {
-    m_right_stick_x = 1024;
-    m_right_stick_y = 1024;
-    m_left_stick_x = 1024;
-    m_left_stick_y = 1024;
+    set_joysticks_state(0, 0, 0, 0);
+}
+
+void Drone::set_normal_speed()
+{
+    std::unique_lock<std::mutex> lock(m_controls_mutex);
+    m_quick_mode = false;
+}
+
+void Drone::set_fast_speed()
+{
+    std::unique_lock<std::mutex> lock(m_controls_mutex);
+    m_quick_mode = true;
+}
+
+void Drone::forward(float speed)
+{
+    set_joysticks_state(0, speed, 0, 0);
+}
+
+void Drone::backward(float speed)
+{
+    set_joysticks_state(0, -speed, 0, 0);
+}
+
+void Drone::left(float speed)
+{
+    set_joysticks_state(-speed, 0, 0, 0);
+}
+
+void Drone::right(float speed)
+{
+    set_joysticks_state(speed, 0, 0, 0);
+}
+
+void Drone::up(float speed)
+{
+    set_joysticks_state(0, 0, 0, speed);
+}
+
+void Drone::down(float speed)
+{
+    set_joysticks_state(0, 0, 0, -speed);
+}
+
+void Drone::clockwise(float speed)
+{
+    set_joysticks_state(0, 0, speed, 0);
+}
+
+void Drone::counterclockwise(float speed)
+{
+    set_joysticks_state(0, 0, -speed, 0);
 }
 
 }

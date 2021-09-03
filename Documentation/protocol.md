@@ -197,7 +197,7 @@ where 0 signifies success and any other value is a failure.
 #### * Drone Log
 The drone has an internal log which it broadcasts to the app. The app just concatenates all log payloads (it does not distinguish between the 
 three packet types), and saves the log to a file. The file seems to be a proprietary log format used by many DJI drones, so it was
-already reversed, and a tool exists to parse it: [https://datfile.net/index.html](https://datfile.net/index.html).
+already reversed, and a tool exists to parse it: [https://datfile.net/index.html](https://datfile.net/index.html). It includes accurate information from the onboard MVO like position and velocity in all axis, and from the onboard IMU like the position and rotation in space (in quaternions) and the temperature.   
 
 ### Unknown Command IDs (TODO)
 8, 16, 25, 27, 34, 35, 51, 65, 81, 82, 83, 88, 89, 90, 91, 95, 96, 97, 98, 99, 101, 112, 113, 114, 116, 117, 128, 129, 4179, 4180

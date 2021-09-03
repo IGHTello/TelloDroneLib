@@ -63,6 +63,17 @@ public:
     void shutdown();
     void set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y);
     void hover();
+    void set_normal_speed();
+    void set_fast_speed();
+    // speed is between 0 and 1
+    void forward(float speed);
+    void backward(float speed);
+    void left(float speed);
+    void right(float speed);
+    void up(float speed);
+    void down(float speed);
+    void clockwise(float speed);
+    void counterclockwise(float speed);
 
 private:
     void close();
