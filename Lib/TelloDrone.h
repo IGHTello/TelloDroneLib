@@ -40,6 +40,9 @@ public:
     [[nodiscard]] std::string get_unique_identifier();
     [[nodiscard]] bool get_activation_status();
 
+    // Drone info setters
+    void set_flight_height_limit(u16);
+
     // Actions
     bool take_off();
     bool land();

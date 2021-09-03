@@ -637,6 +637,11 @@ bool Drone::get_activation_status()
     return *m_drone_info.activation_status;
 }
 
+void Drone::set_flight_height_limit(u16 flight_height_limit)
+{
+    send_packet_and_assert_ack(DronePacket(72, CommandID::SET_FLIGHT_HEIGHT_LIMIT, { static_cast<u8>(flight_height_limit & 0xFF), static_cast<u8>(flight_height_limit >> 8) }));
+}
+
 bool Drone::take_off()
 {
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
