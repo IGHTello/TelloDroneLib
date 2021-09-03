@@ -179,6 +179,7 @@ struct drone_packet {
 * 93 - Command: Throw and Fly[§](#-standard-response)
 * 94 - Command: Palm Land[§](#-standard-response)
 * 128 - Command: Set Smart Video mode[§](#-standard-response). Has one byte of command data, with the bottom bit being 1 for start and 0 for stop, and the next 2 bits being one of: Rotate 360 - 1, Circle - 2, Up & Away - 3)
+* 129 - Drone Info: Smart Video status. Sent from the drone periodically while a smart video mode is enabled. Data format currently unknown.
 * 4176 - Drone Info: Drone Log Header[*](#-drone-log)
 * 4177 - Drone Info: Drone Log Data[*](#-drone-log)
 * 4178 - Drone Info: Drone Log Configuration[*](#-drone-log)
