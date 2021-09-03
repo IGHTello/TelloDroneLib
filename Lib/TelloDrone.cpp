@@ -286,6 +286,7 @@ void Drone::wait_until_connected()
 {
     std::unique_lock<std::mutex> lock(m_connected_mutex);
     m_connected_cv.wait(lock, [this]() { return m_connected; });
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void Drone::close()
