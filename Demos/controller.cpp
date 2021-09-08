@@ -36,9 +36,10 @@ int main()
     std::cout << "Connected to the drone!" << std::endl;
 
     SDL_GameControllerEventState(SDL_ENABLE);
-    i16 axis[SDL_CONTROLLER_AXIS_MAX] = { 0 };
-    auto sdl_axis_to_drone = [](auto axis) {
-        return (float)axis / 32768.0f;
+    i16 axes[SDL_CONTROLLER_AXIS_MAX] = { 0 };
+    i16 offset[SDL_CONTROLLER_AXIS_MAX] = { 0 };
+    auto sdl_axis_to_drone = [&axes, &offset](auto axis) {
+        return (float)(axes[axis] - offset[axis]) / 32768.0f;
     };
     while(true) {
         SDL_Event event;
@@ -50,17 +51,21 @@ int main()
             case SDL_CONTROLLERBUTTONDOWN: {
                 if (event.cbutton.which != controller_instance_id)
                     break;
-                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_Y)
+                if (event.cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
                     drone.take_off();
-                else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A)
+                } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
                     drone.land();
+                } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
+                    for(auto i = 0; i < SDL_CONTROLLER_AXIS_MAX; ++i)
+                        offset[i] = axes[i];
+                }
                 break;
             }
             case SDL_CONTROLLERAXISMOTION: {
                 if (event.caxis.which != controller_instance_id)
                     break;
-                axis[event.caxis.axis] = event.caxis.value;
-                drone.set_joysticks_state(sdl_axis_to_drone(axis[SDL_CONTROLLER_AXIS_RIGHTX]), sdl_axis_to_drone(axis[SDL_CONTROLLER_AXIS_RIGHTY]), sdl_axis_to_drone(axis[SDL_CONTROLLER_AXIS_LEFTX]), sdl_axis_to_drone(axis[SDL_CONTROLLER_AXIS_LEFTY]));
+                axes[event.caxis.axis] = event.caxis.value;
+                drone.set_joysticks_state(sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTX), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTY), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTX), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTY));
                 break;
             }
             }
