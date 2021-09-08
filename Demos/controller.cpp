@@ -3,6 +3,8 @@
 #include <SDL.h>
 #include <SDL_gamecontroller.h>
 
+static constexpr auto dead_zone = 3000;
+
 int main()
 {
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER) != 1)
@@ -39,7 +41,10 @@ int main()
     i16 axes[SDL_CONTROLLER_AXIS_MAX] = { 0 };
     i16 offset[SDL_CONTROLLER_AXIS_MAX] = { 0 };
     auto sdl_axis_to_drone = [&axes, &offset](auto axis) {
-        return (float)(axes[axis] - offset[axis]) / 32768.0f;
+        auto axis_value = axes[axis] - offset[axis];
+        if (abs(axis_value) <= dead_zone)
+            return 0.0f;
+        return (float)(axis_value) / 32768.0f;
     };
     while(true) {
         SDL_Event event;
