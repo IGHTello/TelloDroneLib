@@ -57,12 +57,15 @@ int main()
                 if (event.cbutton.which != controller_instance_id)
                     break;
                 if (event.cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
-                    drone.take_off();
+                    std::cout << "Taking off..." << std::endl;
+                    drone.take_off_non_blocking();
                 } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                    drone.land();
+                    std::cout << "Landing..." << std::endl;
+                    drone.land_non_blocking();
                 } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B) {
                     for(auto i = 0; i < SDL_CONTROLLER_AXIS_MAX; ++i)
                         offset[i] = axes[i];
+                    std::cout << "Saved re-centering offset!" << std::endl;
                 }
                 break;
             }
@@ -70,7 +73,7 @@ int main()
                 if (event.caxis.which != controller_instance_id)
                     break;
                 axes[event.caxis.axis] = event.caxis.value;
-                drone.set_joysticks_state(sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTX), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTY), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTX), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTY));
+                drone.set_joysticks_state(sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTX), -sdl_axis_to_drone(SDL_CONTROLLER_AXIS_RIGHTY), sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTX), -sdl_axis_to_drone(SDL_CONTROLLER_AXIS_LEFTY));
                 break;
             }
             }

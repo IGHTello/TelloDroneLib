@@ -706,6 +706,11 @@ bool Drone::take_off()
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::TAKE_OFF));
 }
 
+void Drone::take_off_non_blocking()
+{
+    queue_packet(DronePacket(104, CommandID::TAKE_OFF));
+}
+
 bool Drone::throw_take_off()
 {
     return send_packet_and_wait_until_ack(DronePacket(72, CommandID::THROW_AND_FLY));
@@ -714,6 +719,11 @@ bool Drone::throw_take_off()
 bool Drone::land()
 {
     return send_packet_and_wait_until_ack(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
+}
+
+void Drone::land_non_blocking()
+{
+    queue_packet(DronePacket(104, CommandID::LAND_DRONE, { 0x00 }));
 }
 
 bool Drone::palm_land()

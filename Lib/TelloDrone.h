@@ -61,6 +61,8 @@ public:
 
     // Actions - NON-BLOCKING
     void shutdown();
+    void take_off_non_blocking();
+    void land_non_blocking();
     void set_joysticks_state(float right_stick_x, float right_stick_y, float left_stick_x, float left_stick_y);
     void hover();
     void set_normal_speed();
