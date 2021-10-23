@@ -42,6 +42,8 @@ public:
 
     // Drone info getters - NON-BLOCKING
     [[nodiscard]] const FlightData& get_flight_data();
+    [[nodiscard]] const MVOData& get_mvo_data();
+    [[nodiscard]] const IMUData& get_imu_data();
 
     // Drone info setters - BLOCKING
     void set_flight_height_limit(u16);
@@ -92,6 +94,7 @@ private:
     void handle_packet(const DronePacket& packet);
 
     void decode_flight_data(const std::vector<u8>& data);
+    void decode_log_data(const std::vector<u8>& data);
 
     void drone_controls_thread_routine();
     void cmd_receive_thread_routine();
@@ -116,6 +119,8 @@ private:
     // These may need locking...
     DroneInfo m_drone_info;
     FlightData m_flight_data;
+    MVOData m_mvo_data;
+    IMUData m_imu_data;
 
     std::chrono::system_clock::time_point m_last_update_time;
     bool m_connected { false };

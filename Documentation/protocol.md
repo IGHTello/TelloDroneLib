@@ -1,7 +1,7 @@
 # App-Drone Communication Protocol
 The protocol was reversed mainly by reverse-engineering the app, and also some network sniffing
 of actual sent packets. Note that in the rest of this document structs are encoded in LE, and all
-structs are packed. Sizes of fields are denoted by `uN` where N is the number of bits. If N is not divisble by 8, it is
+structs are packed. Sizes of fields are denoted by `uN` where N is the number of bits (or `iN` if the field is signed). If N is not divisble by 8, it is
 part of a bitfield.
 
 ## Channels of Communication

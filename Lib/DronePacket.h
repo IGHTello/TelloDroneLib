@@ -82,6 +82,11 @@ enum class SmartVideoAction: u8 {
     UpAndAway = 3 << 2,
 };
 
+enum class LogRecordType : u16 {
+    MVO = 29,
+    IMU = 2048,
+};
+
 struct DronePacket {
     PacketDirection direction;
     u8 packet_type;

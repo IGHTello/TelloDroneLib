@@ -389,7 +389,6 @@ void Drone::handle_packet(const DronePacket& packet)
     case CommandID::THROW_AND_FLY:
     case CommandID::PALM_LAND:
     case CommandID::SET_LOW_BATTERY_WARNING:
-    case CommandID::DRONE_LOG_DATA:
     case CommandID::SET_FLIGHT_HEIGHT_LIMIT:
     case CommandID::SET_SMART_VIDEO_MODE:
     case CommandID::SET_BOUNCE_MODE:
@@ -402,6 +401,10 @@ void Drone::handle_packet(const DronePacket& packet)
         packet_bytes[1] = packet.data[0];
         packet_bytes[2] = packet.data[1];
         queue_packet(DronePacket(80, CommandID::DRONE_LOG_HEADER, std::move(packet_bytes)));
+        break;
+    }
+    case CommandID::DRONE_LOG_DATA: {
+        decode_log_data(packet.data);
         break;
     }
     case CommandID::DRONE_LOG_CONFIGURATION: {
@@ -616,6 +619,61 @@ void Drone::decode_flight_data(const std::vector<u8>& data)
     m_flight_data.temperature_height = (data[22] >> 7) & 1;
 }
 
+void Drone::decode_log_data(const std::vector<u8>& data)
+{
+    if (data.size() < 6)
+        return;
+    for (size_t i = 1; i < data.size() - 6; ++i) {
+        if (data[i] != 'U')
+            break;
+        auto record_length = (u16)data[i + 1] | ((u16)data[i + 2] << 8);
+        auto record_type = (u16)data[i + 4] | ((u16)data[i + 5] << 8);
+        auto xor_key = data[i + 6];
+        std::vector<u8> decrypted_data(record_length);
+        for(size_t j = 0; j < record_length && j + i < data.size(); ++j)
+            decrypted_data[j] = data[i + j] ^ xor_key;
+        // FIXME: There's a bunch more data to be extracted, see: https://pastebin.com/raw/TsMDx4az
+        //  These are in the DJI log format, search online for more information
+        switch (static_cast<LogRecordType>(record_type)) {
+        case LogRecordType::MVO: {
+            auto flags = data[86];
+            if (flags & 1)
+                m_mvo_data.velocity_x = (i16)decrypted_data[12] | ((i16)decrypted_data[13] << 8);
+            if (flags & 2)
+                m_mvo_data.velocity_y = (i16)decrypted_data[14] | ((i16)decrypted_data[15] << 8);
+            if (flags & 4)
+                m_mvo_data.velocity_z = -((i16)decrypted_data[14] | ((i16)decrypted_data[15] << 8));
+            if ((flags & 10) && (flags & 20) && (flags & 40)) {
+                u32 float_bytes = decrypted_data[18] | ((u32)decrypted_data[19] << 8) | ((u32)decrypted_data[20] << 16) | ((u32)decrypted_data[21] << 24);
+                m_mvo_data.position_y = *reinterpret_cast<float*>(&float_bytes);
+                float_bytes = decrypted_data[22] | ((u32)decrypted_data[23] << 8) | ((u32)decrypted_data[24] << 16) | ((u32)decrypted_data[25] << 24);
+                m_mvo_data.position_x = *reinterpret_cast<float*>(&float_bytes);
+                float_bytes = decrypted_data[26] | ((u32)decrypted_data[27] << 8) | ((u32)decrypted_data[28] << 16) | ((u32)decrypted_data[29] << 24);
+                m_mvo_data.position_z = *reinterpret_cast<float*>(&float_bytes);
+            }
+            break;
+        }
+        case LogRecordType::IMU: {
+            u32 float_bytes = decrypted_data[58] | ((u32)decrypted_data[59] << 8) | ((u32)decrypted_data[60] << 16) | ((u32)decrypted_data[61] << 24);
+            m_imu_data.quaternion_w = *reinterpret_cast<float*>(&float_bytes);
+            float_bytes = decrypted_data[62] | ((u32)decrypted_data[63] << 8) | ((u32)decrypted_data[64] << 16) | ((u32)decrypted_data[65] << 24);
+            m_imu_data.quaternion_x = *reinterpret_cast<float*>(&float_bytes);
+            float_bytes = decrypted_data[66] | ((u32)decrypted_data[67] << 8) | ((u32)decrypted_data[68] << 16) | ((u32)decrypted_data[69] << 24);
+            m_imu_data.quaternion_y = *reinterpret_cast<float*>(&float_bytes);
+            float_bytes = decrypted_data[70] | ((u32)decrypted_data[71] << 8) | ((u32)decrypted_data[72] << 16) | ((u32)decrypted_data[73] << 24);
+            m_imu_data.quaternion_z = *reinterpret_cast<float*>(&float_bytes);
+            m_imu_data.temperature = ((i16)decrypted_data[116] | ((i16)data[117] << 8)) / 100;
+            break;
+        }
+        default:
+            if constexpr (DRONE_DEBUG_LOGGING)
+                std::cerr << "Unhandled log record with type=" << record_type << std::endl;
+            break;
+        }
+        i += record_length;
+    }
+}
+
 std::string Drone::get_ssid()
 {
     if (!m_drone_info.ssid.has_value()) [[unlikely]]
@@ -689,6 +747,16 @@ bool Drone::get_activation_status()
 const FlightData& Drone::get_flight_data()
 {
     return m_flight_data;
+}
+
+const MVOData& Drone::get_mvo_data()
+{
+    return m_mvo_data;
+}
+
+const IMUData& Drone::get_imu_data()
+{
+    return m_imu_data;
 }
 
 void Drone::set_flight_height_limit(u16 flight_height_limit)

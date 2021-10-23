@@ -70,4 +70,21 @@ struct FlightData {
     bool temperature_height;
 };
 
+struct MVOData {
+    i16 velocity_x;
+    i16 velocity_y;
+    i16 velocity_z;
+    float position_x;
+    float position_y;
+    float position_z;
+};
+
+struct IMUData {
+    float quaternion_w;
+    float quaternion_x;
+    float quaternion_y;
+    float quaternion_z;
+    i16 temperature;
+};
+
 }
